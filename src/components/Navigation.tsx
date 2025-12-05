@@ -2,10 +2,14 @@ import { useState, useEffect } from "react";
 import { Hexagon, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,13 +26,6 @@ const Navigation = () => {
       if (testimonialSection) {
         const yOffset = -100;
         const y = testimonialSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
-        window.scrollTo({ top: y, behavior: 'smooth' });
-      }
-    } else if (sectionId === 'cta') {
-      const ctaSection = document.querySelector('.button-gradient');
-      if (ctaSection) {
-        const yOffset = -100;
-        const y = ctaSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
     } else {
@@ -55,7 +52,7 @@ const Navigation = () => {
     >
       <div className="mx-auto h-full px-6">
         <nav className="flex items-center justify-between h-full">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
             <div className="relative">
               <Hexagon className="w-6 h-6 text-primary fill-primary/20" />
               <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary">N</span>
@@ -81,13 +78,23 @@ const Navigation = () => {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
-            <Button 
-              onClick={() => scrollToSection('cta')}
-              size="sm"
-              className="button-gradient"
-            >
-              Get Started
-            </Button>
+            {user ? (
+              <Button 
+                onClick={() => navigate('/dashboard')}
+                size="sm"
+                className="button-gradient"
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => navigate('/auth')}
+                size="sm"
+                className="button-gradient"
+              >
+                Get Started
+              </Button>
+            )}
           </div>
 
           {/* Mobile Navigation */}
@@ -116,15 +123,27 @@ const Navigation = () => {
                       {item.name}
                     </a>
                   ))}
-                  <Button 
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      scrollToSection('cta');
-                    }}
-                    className="button-gradient mt-4"
-                  >
-                    Get Started
-                  </Button>
+                  {user ? (
+                    <Button 
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/dashboard');
+                      }}
+                      className="button-gradient mt-4"
+                    >
+                      Dashboard
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/auth');
+                      }}
+                      className="button-gradient mt-4"
+                    >
+                      Get Started
+                    </Button>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
