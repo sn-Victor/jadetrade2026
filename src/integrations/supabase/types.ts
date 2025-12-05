@@ -14,7 +14,251 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      portfolios: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          initial_balance: number | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          initial_balance?: number | null
+          name?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          initial_balance?: number | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      positions: {
+        Row: {
+          bot_id: string | null
+          current_price: number | null
+          entry_price: number
+          id: string
+          opened_at: string | null
+          portfolio_id: string
+          quantity: number
+          side: string
+          symbol: string
+          unrealized_pnl: number | null
+        }
+        Insert: {
+          bot_id?: string | null
+          current_price?: number | null
+          entry_price: number
+          id?: string
+          opened_at?: string | null
+          portfolio_id: string
+          quantity: number
+          side: string
+          symbol: string
+          unrealized_pnl?: number | null
+        }
+        Update: {
+          bot_id?: string | null
+          current_price?: number | null
+          entry_price?: number
+          id?: string
+          opened_at?: string | null
+          portfolio_id?: string
+          quantity?: number
+          side?: string
+          symbol?: string
+          unrealized_pnl?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "trading_bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "positions_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          subscription_tier:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          subscription_tier?:
+            | Database["public"]["Enums"]["subscription_tier"]
+            | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trade_history: {
+        Row: {
+          bot_id: string | null
+          closed_at: string | null
+          entry_price: number
+          exit_price: number
+          id: string
+          pnl: number
+          portfolio_id: string
+          quantity: number
+          side: string
+          symbol: string
+        }
+        Insert: {
+          bot_id?: string | null
+          closed_at?: string | null
+          entry_price: number
+          exit_price: number
+          id?: string
+          pnl: number
+          portfolio_id: string
+          quantity: number
+          side: string
+          symbol: string
+        }
+        Update: {
+          bot_id?: string | null
+          closed_at?: string | null
+          entry_price?: number
+          exit_price?: number
+          id?: string
+          pnl?: number
+          portfolio_id?: string
+          quantity?: number
+          side?: string
+          symbol?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_history_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "trading_bots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_history_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trading_bots: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_drawdown: number | null
+          min_tier: Database["public"]["Enums"]["subscription_tier"] | null
+          monthly_return_avg: number | null
+          name: string
+          strategy_type: string
+          win_rate: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_drawdown?: number | null
+          min_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          monthly_return_avg?: number | null
+          name: string
+          strategy_type: string
+          win_rate?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_drawdown?: number | null
+          min_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          monthly_return_avg?: number | null
+          name?: string
+          strategy_type?: string
+          win_rate?: number | null
+        }
+        Relationships: []
+      }
+      user_bot_subscriptions: {
+        Row: {
+          bot_id: string
+          id: string
+          is_active: boolean | null
+          started_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bot_id: string
+          id?: string
+          is_active?: boolean | null
+          started_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bot_id?: string
+          id?: string
+          is_active?: boolean | null
+          started_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bot_subscriptions_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "trading_bots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +267,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      subscription_tier: "free" | "pro" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +394,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      subscription_tier: ["free", "pro", "enterprise"],
+    },
   },
 } as const
