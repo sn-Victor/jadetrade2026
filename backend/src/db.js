@@ -11,7 +11,7 @@ const getPool = () => {
       user: process.env.RDS_USERNAME,
       password: process.env.RDS_PASSWORD,
       ssl: { rejectUnauthorized: false },
-      max: 1,
+      max: 5, // Allow more connections for concurrency
       idleTimeoutMillis: 120000,
       connectionTimeoutMillis: 10000
     });
@@ -19,6 +19,9 @@ const getPool = () => {
   return pool;
 };
 
+/**
+ * Execute a single query (auto-releases connection)
+ */
 const query = async (text, params) => {
   const client = await getPool().connect();
   try {
@@ -29,4 +32,41 @@ const query = async (text, params) => {
   }
 };
 
-module.exports = { getPool, query };
+/**
+ * Execute multiple operations in a transaction
+ * Automatically handles BEGIN, COMMIT, and ROLLBACK
+ *
+ * Usage:
+ *   const result = await withTransaction(async (client) => {
+ *     await client.query('INSERT INTO ...');
+ *     await client.query('UPDATE ...');
+ *     return someValue;
+ *   });
+ *
+ * @param {Function} callback - Async function that receives the client
+ * @returns {Promise<any>} - The return value of the callback
+ */
+const withTransaction = async (callback) => {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+/**
+ * Get a client for manual transaction management
+ * Remember to call client.release() when done!
+ */
+const getClient = async () => {
+  return await getPool().connect();
+};
+
+module.exports = { getPool, query, withTransaction, getClient };

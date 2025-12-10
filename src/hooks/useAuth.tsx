@@ -20,6 +20,8 @@ interface User {
   email: string;
   name?: string;
   tier: 'free' | 'pro' | 'enterprise';
+  isAdmin: boolean;
+  groups: string[];
 }
 
 interface AuthContextType {
@@ -29,6 +31,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   confirmSignUp: (email: string, code: string) => Promise<{ error: Error | null }>;
+  forgotPassword: (email: string) => Promise<{ error: Error | null }>;
+  confirmForgotPassword: (email: string, code: string, newPassword: string) => Promise<{ error: Error | null }>;
   refreshTier: () => Promise<void>;
 }
 
@@ -57,14 +61,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const tier = await fetchUserTier();
 
+    // Extract Cognito groups from the token payload
+    const groups: string[] = payload['cognito:groups'] || [];
+    const isAdmin = groups.includes('admin');
+
     setUser({
       id: payload.sub,
       email: payload.email,
       name: payload.name || payload.email,
       tier,
+      isAdmin,
+      groups,
     });
 
-    logger.info('User authenticated', { email: payload.email, tier });
+    logger.info('User authenticated', { email: payload.email, tier, isAdmin, groups });
   };
 
   const refreshTier = async () => {
@@ -73,6 +83,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser({ ...user, tier });
       logger.info('User tier refreshed', { tier });
     }
+  };
+
+  // Check if current user is an admin
+  const checkIsAdmin = (): boolean => {
+    return user?.isAdmin || false;
   };
 
   useEffect(() => {
@@ -158,8 +173,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logger.trackAuth('signout', true);
   };
 
+  const forgotPassword = async (email: string) => {
+    return new Promise<{ error: Error | null }>((resolve) => {
+      const cognitoUser = new CognitoUser({ Username: email, Pool: userPool });
+      cognitoUser.forgotPassword({
+        onSuccess: () => {
+          logger.info('Forgot password code sent', { email });
+          resolve({ error: null });
+        },
+        onFailure: (err) => {
+          logger.error('Forgot password failed', err);
+          resolve({ error: err as Error });
+        },
+      });
+    });
+  };
+
+  const confirmForgotPassword = async (email: string, code: string, newPassword: string) => {
+    return new Promise<{ error: Error | null }>((resolve) => {
+      const cognitoUser = new CognitoUser({ Username: email, Pool: userPool });
+      cognitoUser.confirmPassword(code, newPassword, {
+        onSuccess: () => {
+          logger.info('Password reset successful', { email });
+          resolve({ error: null });
+        },
+        onFailure: (err) => {
+          logger.error('Password reset failed', err);
+          resolve({ error: err as Error });
+        },
+      });
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, confirmSignUp, refreshTier }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, confirmSignUp, forgotPassword, confirmForgotPassword, refreshTier }}>
       {children}
     </AuthContext.Provider>
   );

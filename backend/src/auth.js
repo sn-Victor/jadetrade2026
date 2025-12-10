@@ -36,11 +36,27 @@ const getUserFromToken = async (authHeader) => {
   }
   const token = authHeader.substring(7);
   const decoded = await verifyToken(token);
+
+  // Extract Cognito groups from the token
+  const groups = decoded['cognito:groups'] || [];
+  const isAdmin = groups.includes('admin');
+
   return {
     id: decoded.sub,
     email: decoded.email,
-    name: decoded.name || decoded.email
+    name: decoded.name || decoded.email,
+    groups,
+    isAdmin
   };
 };
 
-module.exports = { verifyToken, getUserFromToken };
+// Middleware to require admin access
+const requireAdmin = async (authHeader) => {
+  const user = await getUserFromToken(authHeader);
+  if (!user.isAdmin) {
+    throw new Error('Admin access required');
+  }
+  return user;
+};
+
+module.exports = { verifyToken, getUserFromToken, requireAdmin };

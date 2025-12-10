@@ -21,7 +21,16 @@
       "Bash(npm run build:*)",
       "Bash(locust:*)",
       "Skill(superpowers:finishing-a-development-branch)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat(jadetrade): Complete platform upgrade to production-grade architecture\n\n- Add Python FastAPI bot-engine with AI chatbot (Claude API streaming)\n- Add WebSocket real-time updates for prices, positions, trades\n- Add Loki/Grafana/Promtail logging stack\n- Add Redis queue for signal processing\n- Add frontend chat widget with SSE streaming (Pro/Enterprise only)\n- Add useWebSocket and useChat React hooks\n- Add Terraform infrastructure (ECS, ElastiCache, CloudWatch, ALB)\n- Add deployment scripts for AWS production\n- Add load testing with Locust\n- Add security audit with headers middleware\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git config:*)",
+      "Bash(npm run dev:*)",
+      "Bash(start http://localhost:8080)",
+      "Bash(start \"C:\\Users\\noobnoob\\Documents\\saas-face-lift\\bot-engine\\chat_test.html\")",
+      "Bash(start \"C:\\Users\\noobnoob\\Documents\\saas-face-lift\\bot-engine\\ws_test.html\")",
+      "Skill(superpowers:brainstorming)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

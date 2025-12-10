@@ -1,5 +1,6 @@
 const { query } = require('../db');
 const { getUserFromToken } = require('../auth');
+const { getOrCreateUser } = require('../user-service');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,8 +10,10 @@ const corsHeaders = {
 
 exports.getPortfolios = async (event) => {
   try {
-    const user = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
-    const result = await query('SELECT * FROM portfolios WHERE user_id = $1 ORDER BY created_at', [user.id]);
+    const cognitoUser = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+    const dbUser = await getOrCreateUser(cognitoUser);
+
+    const result = await query('SELECT * FROM portfolios WHERE user_id = $1 ORDER BY created_at', [dbUser.id]);
     return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result.rows) };
   } catch (error) {
     console.error('Error:', error);
@@ -20,9 +23,11 @@ exports.getPortfolios = async (event) => {
 
 exports.getPositions = async (event) => {
   try {
-    const user = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+    const cognitoUser = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+    const dbUser = await getOrCreateUser(cognitoUser);
+
     const portfolioId = event.pathParameters?.portfolioId;
-    const portfolioCheck = await query('SELECT id FROM portfolios WHERE id = $1 AND user_id = $2', [portfolioId, user.id]);
+    const portfolioCheck = await query('SELECT id FROM portfolios WHERE id = $1 AND user_id = $2', [portfolioId, dbUser.id]);
     if (portfolioCheck.rows.length === 0) {
       return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: 'Portfolio not found' }) };
     }
@@ -39,9 +44,11 @@ exports.getPositions = async (event) => {
 
 exports.getTradeHistory = async (event) => {
   try {
-    const user = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+    const cognitoUser = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+    const dbUser = await getOrCreateUser(cognitoUser);
+
     const portfolioId = event.pathParameters?.portfolioId;
-    const portfolioCheck = await query('SELECT id FROM portfolios WHERE id = $1 AND user_id = $2', [portfolioId, user.id]);
+    const portfolioCheck = await query('SELECT id FROM portfolios WHERE id = $1 AND user_id = $2', [portfolioId, dbUser.id]);
     if (portfolioCheck.rows.length === 0) {
       return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: 'Portfolio not found' }) };
     }

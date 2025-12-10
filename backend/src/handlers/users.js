@@ -1,5 +1,5 @@
-const { query } = require('../db');
 const { getUserFromToken } = require('../auth');
+const { getOrCreateUser, updateUser } = require('../user-service');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,36 +7,61 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
 };
 
+/**
+ * Get user profile - handles auto-creation and Cognito pool migrations
+ * Uses transaction-based user service for reliability
+ */
 exports.getProfile = async (event) => {
   try {
-    const user = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
-    const result = await query('SELECT * FROM users WHERE id = $1', [user.id]);
-    if (result.rows.length === 0) {
-      const insertResult = await query(
-        'INSERT INTO users (id, email, full_name) VALUES ($1, $2, $3) RETURNING *',
-        [user.id, user.email, user.name]
-      );
-      await query('INSERT INTO portfolios (user_id, name) VALUES ($1, $2)', [user.id, 'Demo Portfolio']);
-      return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(insertResult.rows[0]) };
-    }
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result.rows[0]) };
+    // Get Cognito user info from JWT token
+    const cognitoUser = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+
+    // Get or create user (handles pool migrations automatically)
+    const dbUser = await getOrCreateUser(cognitoUser);
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify(dbUser)
+    };
   } catch (error) {
-    console.error('Error:', error);
-    return { statusCode: error.message.includes('token') ? 401 : 500, headers: corsHeaders, body: JSON.stringify({ error: error.message }) };
+    console.error('getProfile Error:', error);
+    return {
+      statusCode: error.message.includes('token') ? 401 : 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
 
+/**
+ * Update user profile
+ */
 exports.updateProfile = async (event) => {
   try {
-    const user = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+    const cognitoUser = await getUserFromToken(event.headers.Authorization || event.headers.authorization);
+
+    // First get/create to ensure user exists and get internal ID
+    const dbUser = await getOrCreateUser(cognitoUser);
+
+    // Update using internal ID
     const body = JSON.parse(event.body);
-    const result = await query(
-      'UPDATE users SET full_name = $1, avatar_url = $2, updated_at = now() WHERE id = $3 RETURNING *',
-      [body.full_name, body.avatar_url, user.id]
-    );
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result.rows[0]) };
+    const updatedUser = await updateUser(dbUser.id, {
+      full_name: body.full_name,
+      avatar_url: body.avatar_url
+    });
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify(updatedUser)
+    };
   } catch (error) {
-    console.error('Error:', error);
-    return { statusCode: error.message.includes('token') ? 401 : 500, headers: corsHeaders, body: JSON.stringify({ error: error.message }) };
+    console.error('updateProfile Error:', error);
+    return {
+      statusCode: error.message.includes('token') ? 401 : 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };

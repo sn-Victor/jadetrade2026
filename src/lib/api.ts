@@ -39,6 +39,20 @@ export interface DemoBalance {
   pnlPercent: number;
 }
 
+export interface ExchangeKey {
+  id: string;
+  exchange: string;
+  label: string;
+  apiKeyMasked: string;
+  isReadOnly: boolean;
+  canTrade: boolean;
+  isActive: boolean;
+  isValid: boolean;
+  lastUsedAt?: string;
+  lastValidatedAt?: string;
+  createdAt: string;
+}
+
 export interface Strategy {
   id: string;
   name: string;
@@ -218,18 +232,31 @@ class BotEngineClient {
   }
 
   // Exchange API keys
-  async getApiKeys() {
-    return this.request<{ api_keys: any[] }>('/api/keys');
+  async getExchangeKeys() {
+    return this.request<{ keys: ExchangeKey[] }>('/api/exchange-keys');
   }
 
-  async addApiKey(data: { exchange: string; api_key: string; api_secret: string; label?: string }) {
-    logger.trackAction('Add API key', { exchange: data.exchange });
-    return this.request<{ id: string }>('/api/keys', { method: 'POST', body: JSON.stringify(data) });
+  async addExchangeKey(data: { exchange: string; apiKey: string; apiSecret: string; passphrase?: string; label?: string }) {
+    logger.trackAction('Add exchange API key', { exchange: data.exchange });
+    return this.request<{ message: string; key: { id: string; exchange: string; label: string } }>(
+      '/api/exchange-keys',
+      { method: 'POST', body: JSON.stringify(data) }
+    );
   }
 
-  async deleteApiKey(keyId: string) {
-    logger.trackAction('Delete API key', { keyId });
-    return this.request<{ success: boolean }>(`/api/keys/${keyId}`, { method: 'DELETE' });
+  async deleteExchangeKey(keyId: string) {
+    logger.trackAction('Delete exchange API key', { keyId });
+    return this.request<{ message: string }>(`/api/exchange-keys/${keyId}`, { method: 'DELETE' });
+  }
+
+  async updateExchangeKey(keyId: string, data: { isActive?: boolean; label?: string }) {
+    logger.trackAction('Update exchange API key', { keyId, ...data });
+    return this.request<{ key: ExchangeKey }>(`/api/exchange-keys/${keyId}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  async validateExchangeKey(keyId: string) {
+    logger.trackAction('Validate exchange API key', { keyId });
+    return this.request<{ valid: boolean; balance?: number; error?: string }>(`/api/exchange-keys/${keyId}/validate`, { method: 'POST' });
   }
 
   // Manual trade execution

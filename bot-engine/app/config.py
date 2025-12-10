@@ -21,9 +21,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
 
     # AWS Cognito (for JWT verification)
-    COGNITO_REGION: str = "us-east-1"
-    COGNITO_USER_POOL_ID: str = ""
-    COGNITO_APP_CLIENT_ID: str = ""
+    COGNITO_REGION: str = "us-east-2"
+    COGNITO_USER_POOL_ID: str = "us-east-2_qovyryhwW"
+    COGNITO_APP_CLIENT_ID: str = "43vb50etsolvu83klfjskgqbs2"
 
     # Encryption
     ENCRYPTION_KEY: str = ""  # 32-byte hex string for AES-256

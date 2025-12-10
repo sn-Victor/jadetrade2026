@@ -5,7 +5,9 @@ const stripe = require('./handlers/stripe');
 const logs = require('./handlers/logs');
 const trading = require('./handlers/trading');
 const strategies = require('./handlers/strategies');
+const exchangeKeys = require('./handlers/exchange-keys');
 const { getUserFromToken } = require('./auth');
+const { getOrCreateUser } = require('./user-service');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,17 +55,18 @@ exports.handler = async (event) => {
     }
 
     // Get user from auth token for protected endpoints
-    let userId = null;
+    // Now uses the centralized user service for reliable user resolution
+    let userId = null;  // Internal user ID (stable, never changes)
     let userTier = 'free';
+    let dbUser = null;
     try {
       const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
       if (authHeader.startsWith('Bearer ')) {
-        const user = await getUserFromToken(authHeader.replace('Bearer ', ''));
-        userId = user?.sub || user?.userId;
-        // Get tier from DB
-        const { query } = require('./db');
-        const userResult = await query('SELECT subscription_tier FROM users WHERE id = $1', [userId]);
-        userTier = userResult.rows[0]?.subscription_tier || 'free';
+        const cognitoUser = await getUserFromToken(authHeader);
+        // Get or create user (handles Cognito pool migrations automatically)
+        dbUser = await getOrCreateUser(cognitoUser);
+        userId = dbUser.id;  // Use internal ID, not Cognito ID
+        userTier = dbUser.subscription_tier || 'free';
       }
     } catch (authErr) {
       console.log('Auth error (may be okay for some endpoints):', authErr.message);
@@ -162,6 +165,36 @@ exports.handler = async (event) => {
     if (path === '/api/stripe/checkout' && method === 'POST') return await stripe.createCheckoutSession(event);
     if (path === '/api/stripe/portal' && method === 'POST') return await stripe.createPortalSession(event);
     if (path === '/api/payments' && method === 'GET') return await stripe.getPaymentHistory(event);
+
+    // Exchange API Keys
+    if (path === '/api/exchange-keys' && method === 'GET') {
+      if (!userId) return response(401, { error: 'Authentication required' });
+      const result = await exchangeKeys.getExchangeKeys(event, userId);
+      return response(result.statusCode, result.body);
+    }
+    if (path === '/api/exchange-keys' && method === 'POST') {
+      if (!userId) return response(401, { error: 'Authentication required' });
+      const result = await exchangeKeys.addExchangeKey(event, userId);
+      return response(result.statusCode, result.body);
+    }
+    if (path.match(/^\/api\/exchange-keys\/[^\/]+$/) && method === 'DELETE') {
+      if (!userId) return response(401, { error: 'Authentication required' });
+      event.pathParameters = { keyId: path.split('/')[3] };
+      const result = await exchangeKeys.deleteExchangeKey(event, userId);
+      return response(result.statusCode, result.body);
+    }
+    if (path.match(/^\/api\/exchange-keys\/[^\/]+$/) && method === 'PUT') {
+      if (!userId) return response(401, { error: 'Authentication required' });
+      event.pathParameters = { keyId: path.split('/')[3] };
+      const result = await exchangeKeys.updateExchangeKey(event, userId);
+      return response(result.statusCode, result.body);
+    }
+    if (path.match(/^\/api\/exchange-keys\/[^\/]+\/validate$/) && method === 'POST') {
+      if (!userId) return response(401, { error: 'Authentication required' });
+      event.pathParameters = { keyId: path.split('/')[3] };
+      const result = await exchangeKeys.validateExchangeKey(event, userId);
+      return response(result.statusCode, result.body);
+    }
 
     return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: 'Not found', path }) };
   } catch (error) {

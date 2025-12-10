@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Gem, TrendingUp, TrendingDown, Wallet,
-  Bot, LogOut, BarChart3, History, Settings
+  Bot, LogOut, BarChart3, History, Settings, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -113,9 +113,24 @@ const Dashboard = () => {
             >
               Strategy Marketplace
             </button>
+            <button
+              onClick={() => navigate('/exchanges')}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Exchanges
+            </button>
             <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Trade History
             </button>
+            {user?.isAdmin && (
+              <button
+                onClick={() => navigate('/admin')}
+                className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+              >
+                <Shield className="w-4 h-4" />
+                Admin
+              </button>
+            )}
           </nav>
 
           <div className="flex items-center gap-4">
