@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(pip --version:*)",
+      "Bash(docker:*)",
+      "Skill(superpowers:executing-plans)",
+      "Bash(mkdir:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(curl:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(python test_loki.py:*)",
+      "Bash(python:*)",
+      "Bash(start http://localhost:3001)",
+      "Bash(start http://localhost:8000/docs)",
+      "Bash(start \"C:/Users/noobnoob/Documents/saas-face-lift/bot-engine/chat_test.html\")",
+      "Bash(start \"C:/Users/noobnoob/Documents/saas-face-lift/bot-engine/ws_test.html\")",
+      "Bash(npm run build:*)",
+      "Bash(locust:*)",
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

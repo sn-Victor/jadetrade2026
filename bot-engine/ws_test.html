@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JadeTrade - WebSocket Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #10b981;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #334155;
+            padding: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.disconnected { background: #ef4444; }
+        .status-dot.connecting { background: #f59e0b; animation: pulse 1s infinite; }
+        .status-dot.connected { background: #10b981; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        input, button, select {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+
+        button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        button.secondary {
+            background: #475569;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .log-container {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 12px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            background: #1e293b;
+        }
+
+        .log-entry.sent {
+            border-left: 3px solid #10b981;
+        }
+
+        .log-entry.received {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .log-entry.error {
+            border-left: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .log-entry.system {
+            border-left: 3px solid #f59e0b;
+            color: #94a3b8;
+        }
+
+        .log-time {
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .log-type {
+            font-weight: 600;
+            margin: 0 8px;
+        }
+
+        .log-type.sent { color: #10b981; }
+        .log-type.received { color: #3b82f6; }
+        .log-type.error { color: #ef4444; }
+        .log-type.system { color: #f59e0b; }
+
+        .subscriptions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .sub-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sub-badge.inactive {
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        .sub-badge.active {
+            background: #10b981;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-box {
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        .message-preview {
+            background: #0f172a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+        }
+
+        .message-preview pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .quick-action {
+            padding: 8px 12px;
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span>🔌</span>
+            JadeTrade WebSocket Test
+        </h1>
+
+        <div class="grid">
+            <!-- Connection Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Connection</span>
+                    <div class="status">
+                        <span class="status-dot disconnected" id="statusDot"></span>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="controls">
+                        <input type="text" id="userId" placeholder="User ID" value="demo-user" style="flex: 1;">
+                        <button id="connectBtn">Connect</button>
+                        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+                    </div>
+
+                    <h4 style="margin-bottom: 12px;">Topic Subscriptions</h4>
+                    <div class="subscriptions">
+                        <span class="sub-badge inactive" data-topic="prices">📈 Prices</span>
+                        <span class="sub-badge inactive" data-topic="positions">📊 Positions</span>
+                        <span class="sub-badge inactive" data-topic="trades">💱 Trades</span>
+                        <span class="sub-badge inactive" data-topic="signals">🔔 Signals</span>
+                    </div>
+
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="stat-box">
+                            <div class="stat-value" id="totalConnections">-</div>
+                            <div class="stat-label">Total Connections</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="uniqueUsers">-</div>
+                            <div class="stat-label">Unique Users</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="pingTime">-</div>
+                            <div class="stat-label">Ping (ms)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Message Panel -->
+            <div class="card">
+                <div class="card-header">
+                    <span>Send Custom Message</span>
+                </div>
+                <div class="card-body">
+                    <div class="controls">
+                        <select id="messageType" style="flex: 1;">
+                            <option value="ping">ping</option>
+                            <option value="subscribe">subscribe</option>
+                            <option value="unsubscribe">unsubscribe</option>
+                            <option value="get_stats">get_stats</option>
+                        </select>
+                        <select id="messageTopic" style="flex: 1;">
+                            <option value="">No topic</option>
+                            <option value="prices">prices</option>
+                            <option value="positions">positions</option>
+                            <option value="trades">trades</option>
+                            <option value="signals">signals</option>
+                        </select>
+                        <button id="sendBtn" disabled>Send</button>
+                    </div>
+
+                    <div class="message-preview">
+                        <strong style="font-size: 12px; color: #64748b;">Message Preview:</strong>
+                        <pre id="messagePreview">{"type": "ping"}</pre>
+                    </div>
+
+                    <h4 style="margin: 16px 0 12px;">Quick Actions</h4>
+                    <div class="quick-actions">
+                        <button class="quick-action" data-action="ping">Ping Server</button>
+                        <button class="quick-action" data-action="get_stats">Get Stats</button>
+                        <button class="quick-action" data-action="subscribe_all">Subscribe All</button>
+                        <button class="quick-action" data-action="unsubscribe_all">Unsubscribe All</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Log -->
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-header">
+                <span>Message Log</span>
+                <button class="secondary" id="clearLog" style="padding: 6px 12px; font-size: 12px;">Clear</button>
+            </div>
+            <div class="card-body">
+                <div class="log-container" id="logContainer">
+                    <div class="log-entry system">
+                        <span class="log-time">--:--:--</span>
+                        <span class="log-type system">SYSTEM</span>
+                        <span>Ready to connect. Enter a user ID and click Connect.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WS_URL = 'ws://localhost:8000/ws/connect';
+        const API_URL = 'http://localhost:8000';
+
+        let ws = null;
+        let pingStart = null;
+        let subscriptions = new Set();
+
+        // DOM Elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const userId = document.getElementById('userId');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const messageType = document.getElementById('messageType');
+        const messageTopic = document.getElementById('messageTopic');
+        const messagePreview = document.getElementById('messagePreview');
+        const logContainer = document.getElementById('logContainer');
+        const clearLog = document.getElementById('clearLog');
+
+        // Stats
+        const totalConnections = document.getElementById('totalConnections');
+        const uniqueUsers = document.getElementById('uniqueUsers');
+        const pingTime = document.getElementById('pingTime');
+
+        // Update message preview
+        function updatePreview() {
+            const msg = { type: messageType.value };
+            if (messageTopic.value && (messageType.value === 'subscribe' || messageType.value === 'unsubscribe')) {
+                msg.topic = messageTopic.value;
+            }
+            messagePreview.textContent = JSON.stringify(msg, null, 2);
+        }
+
+        messageType.addEventListener('change', updatePreview);
+        messageTopic.addEventListener('change', updatePreview);
+
+        // Log helper
+        function log(type, message, data = null) {
+            const now = new Date();
+            const time = now.toTimeString().split(' ')[0];
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            let content = `<span class="log-time">${time}</span>`;
+            content += `<span class="log-type ${type}">${type.toUpperCase()}</span>`;
+            content += `<span>${message}</span>`;
+
+            if (data) {
+                content += `<pre style="margin-top: 8px; color: #94a3b8; font-size: 11px;">${JSON.stringify(data, null, 2)}</pre>`;
+            }
+
+            entry.innerHTML = content;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Update connection status
+        function setStatus(status) {
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+
+            connectBtn.disabled = status === 'connected' || status === 'connecting';
+            disconnectBtn.disabled = status !== 'connected';
+            sendBtn.disabled = status !== 'connected';
+        }
+
+        // Update subscription badges
+        function updateSubscriptionBadge(topic, active) {
+            const badge = document.querySelector(`[data-topic="${topic}"]`);
+            if (badge) {
+                badge.className = `sub-badge ${active ? 'active' : 'inactive'}`;
+            }
+            if (active) {
+                subscriptions.add(topic);
+            } else {
+                subscriptions.delete(topic);
+            }
+        }
+
+        // Connect
+        function connect() {
+            const user = userId.value.trim() || 'anonymous';
+            setStatus('connecting');
+            log('system', `Connecting as "${user}"...`);
+
+            ws = new WebSocket(`${WS_URL}?user_id=${encodeURIComponent(user)}`);
+
+            ws.onopen = () => {
+                setStatus('connected');
+                log('system', 'Connected to WebSocket server');
+                fetchStats();
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    // Handle specific message types
+                    switch (data.type) {
+                        case 'connected':
+                            log('received', 'Connection confirmed', data.data);
+                            break;
+                        case 'subscribed':
+                            log('received', `Subscribed to ${data.data.topic}`);
+                            updateSubscriptionBadge(data.data.topic, true);
+                            break;
+                        case 'unsubscribed':
+                            log('received', `Unsubscribed from ${data.data.topic}`);
+                            updateSubscriptionBadge(data.data.topic, false);
+                            break;
+                        case 'pong':
+                            if (pingStart) {
+                                const latency = Date.now() - pingStart;
+                                pingTime.textContent = latency;
+                                log('received', `Pong (${latency}ms)`);
+                                pingStart = null;
+                            } else {
+                                log('received', 'Pong');
+                            }
+                            break;
+                        case 'ping':
+                            log('received', 'Server ping (keepalive)');
+                            ws.send(JSON.stringify({ type: 'pong' }));
+                            break;
+                        case 'stats':
+                            log('received', 'Server stats', data.data);
+                            updateStats(data.data);
+                            break;
+                        case 'price_update':
+                            log('received', 'Price update', data.data);
+                            break;
+                        case 'trade_executed':
+                            log('received', 'Trade executed', data.data);
+                            break;
+                        case 'position_update':
+                            log('received', 'Position update', data.data);
+                            break;
+                        case 'signal_received':
+                            log('received', 'Signal received', data.data);
+                            break;
+                        case 'system_message':
+                            log('received', `System: ${data.data.message}`, data.data);
+                            break;
+                        default:
+                            log('received', `${data.type}`, data.data || data);
+                    }
+                } catch (e) {
+                    log('received', event.data);
+                }
+            };
+
+            ws.onerror = (error) => {
+                log('error', 'WebSocket error occurred');
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = (event) => {
+                setStatus('disconnected');
+                subscriptions.clear();
+                document.querySelectorAll('.sub-badge').forEach(b => b.className = 'sub-badge inactive');
+                log('system', `Disconnected (code: ${event.code})`);
+                ws = null;
+            };
+        }
+
+        // Disconnect
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        // Send message
+        function sendMessage(msg) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(msg));
+                log('sent', `${msg.type}${msg.topic ? ` (${msg.topic})` : ''}`, msg);
+
+                if (msg.type === 'ping') {
+                    pingStart = Date.now();
+                }
+            }
+        }
+
+        // Fetch stats via REST API
+        async function fetchStats() {
+            try {
+                const response = await fetch(`${API_URL}/ws/stats`);
+                const data = await response.json();
+                updateStats(data);
+            } catch (e) {
+                console.error('Failed to fetch stats:', e);
+            }
+        }
+
+        // Update stats display
+        function updateStats(data) {
+            totalConnections.textContent = data.total_connections || 0;
+            uniqueUsers.textContent = data.unique_users || 0;
+        }
+
+        // Event listeners
+        connectBtn.addEventListener('click', connect);
+        disconnectBtn.addEventListener('click', disconnect);
+
+        sendBtn.addEventListener('click', () => {
+            const msg = { type: messageType.value };
+            if (messageTopic.value && (messageType.value === 'subscribe' || messageType.value === 'unsubscribe')) {
+                msg.topic = messageTopic.value;
+            }
+            sendMessage(msg);
+        });
+
+        clearLog.addEventListener('click', () => {
+            logContainer.innerHTML = '';
+            log('system', 'Log cleared');
+        });
+
+        // Subscription badge clicks
+        document.querySelectorAll('.sub-badge').forEach(badge => {
+            badge.addEventListener('click', () => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                const topic = badge.dataset.topic;
+                const isActive = subscriptions.has(topic);
+
+                sendMessage({
+                    type: isActive ? 'unsubscribe' : 'subscribe',
+                    topic: topic
+                });
+            });
+        });
+
+        // Quick actions
+        document.querySelectorAll('.quick-action').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+                const action = btn.dataset.action;
+
+                switch (action) {
+                    case 'ping':
+                        sendMessage({ type: 'ping' });
+                        break;
+                    case 'get_stats':
+                        sendMessage({ type: 'get_stats' });
+                        break;
+                    case 'subscribe_all':
+                        ['prices', 'positions', 'trades', 'signals'].forEach(topic => {
+                            if (!subscriptions.has(topic)) {
+                                sendMessage({ type: 'subscribe', topic });
+                            }
+                        });
+                        break;
+                    case 'unsubscribe_all':
+                        [...subscriptions].forEach(topic => {
+                            sendMessage({ type: 'unsubscribe', topic });
+                        });
+                        break;
+                }
+            });
+        });
+
+        // Initialize
+        updatePreview();
+    </script>
+</body>
+</html>

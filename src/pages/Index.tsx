@@ -47,7 +47,7 @@ const Index = () => {
             </span>
             <br />
             <span className="text-gradient">
-              <TextGenerateEffect words="AI-powered algorithms" />
+              <TextGenerateEffect words="Algorithmic powered trading" />
             </span>
           </h1>
           
@@ -81,7 +81,7 @@ const Index = () => {
               className="text-foreground hover:text-primary group"
               onClick={() => navigate('/auth')}
             >
-              View Trading Bots <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+              View Trading Strategies <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </motion.div>
         </div>
@@ -97,7 +97,7 @@ const Index = () => {
             { label: 'Active Traders', value: '12,500+' },
             { label: 'Monthly Volume', value: '$84M+' },
             { label: 'Avg. Win Rate', value: '68.4%' },
-            { label: 'Trading Bots', value: '24' },
+            { label: 'Trading Strategies', value: '24' },
           ].map((stat, i) => (
             <div key={i} className="text-left">
               <p className="text-2xl md:text-3xl font-semibold font-mono text-gradient">{stat.value}</p>
@@ -116,7 +116,7 @@ const Index = () => {
           <div className="glass rounded-2xl overflow-hidden glow-primary">
             <img
               src="/lovable-uploads/c32c6788-5e4a-4fee-afee-604b03113c7f.png"
-              alt="NexTrade Dashboard"
+              alt="JadeTrade Dashboard"
               className="w-full h-auto"
             />
           </div>
@@ -150,14 +150,14 @@ const Index = () => {
             {
               step: '02',
               icon: Bot,
-              title: 'Choose Your Bots',
+              title: 'Choose Your Strategies',
               description: 'Browse our marketplace of proven algorithms. Subscribe to strategies that match your goals.',
             },
             {
               step: '03',
               icon: TrendingUp,
               title: 'Start Trading',
-              description: 'Connect your brokerage and let our bots execute trades automatically 24/7.',
+              description: 'Connect your brokerage and let our strategies execute trades automatically 24/7.',
             },
           ].map((item, i) => (
             <motion.div

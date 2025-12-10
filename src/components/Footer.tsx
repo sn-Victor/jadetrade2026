@@ -1,4 +1,4 @@
-import { Github, Twitter, Hexagon } from "lucide-react";
+import { Github, Twitter, Gem } from "lucide-react";
 import { Button } from "./ui/button";
 
 const Footer = () => {
@@ -10,10 +10,9 @@ const Footer = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Hexagon className="w-6 h-6 text-primary fill-primary/20" />
-                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-primary">N</span>
+                  <Gem className="w-6 h-6 text-primary fill-primary/20" />
                 </div>
-                <span className="font-semibold text-lg tracking-tight">NexTrade</span>
+                <span className="font-semibold text-lg tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">JadeTrade</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Empowering the next generation of crypto traders with institutional-grade tools.
@@ -79,7 +78,7 @@ const Footer = () => {
 
           <div className="mt-8 pt-8 border-t border-border">
             <p className="text-sm text-muted-foreground text-center">
-              © {new Date().getFullYear()} NexTrade. All rights reserved.
+              © {new Date().getFullYear()} JadeTrade. All rights reserved.
             </p>
           </div>
         </div>

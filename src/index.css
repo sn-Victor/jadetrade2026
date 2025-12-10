@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 60 9% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 60 9% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 60 9% 98%;
-    --primary: 38 92% 50%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 60 9% 98%;
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 45 93% 58%;
-    --accent-foreground: 222 47% 6%;
+    --background: 200 25% 6%;
+    --foreground: 160 15% 98%;
+    --card: 200 25% 8%;
+    --card-foreground: 160 15% 98%;
+    --popover: 200 25% 8%;
+    --popover-foreground: 160 15% 98%;
+    --primary: 158 64% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 20% 14%;
+    --secondary-foreground: 160 15% 98%;
+    --muted: 200 20% 14%;
+    --muted-foreground: 160 10% 55%;
+    --accent: 142 76% 48%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 60 9% 98%;
-    --border: 222 30% 18%;
-    --input: 222 30% 18%;
-    --ring: 38 92% 50%;
+    --destructive-foreground: 160 15% 98%;
+    --border: 200 20% 18%;
+    --input: 200 20% 18%;
+    --ring: 158 64% 52%;
     --radius: 0.75rem;
   }
 }
@@ -51,7 +51,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(255, 255, 255, 0.05));
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.3), rgba(16, 185, 129, 0.1));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -66,31 +66,31 @@
 /* Text gradient with brand colors */
 .text-gradient {
   @apply bg-clip-text text-transparent;
-  background-image: linear-gradient(135deg, hsl(38, 92%, 50%) 0%, hsl(45, 93%, 68%) 100%);
+  background-image: linear-gradient(135deg, hsl(158, 64%, 52%) 0%, hsl(142, 76%, 48%) 100%);
 }
 
 /* Button gradient */
 .button-gradient {
-  background: linear-gradient(135deg, hsl(38, 92%, 50%) 0%, hsl(45, 93%, 58%) 100%);
-  @apply hover:opacity-90 transition-all duration-300 rounded-full text-background font-semibold;
-  box-shadow: 0 4px 20px -4px hsla(38, 92%, 50%, 0.5);
+  background: linear-gradient(135deg, hsl(158, 64%, 52%) 0%, hsl(142, 76%, 48%) 100%);
+  @apply hover:opacity-90 transition-all duration-300 rounded-full text-white font-semibold;
+  box-shadow: 0 4px 20px -4px hsla(158, 64%, 52%, 0.5);
 }
 
 .button-gradient:hover {
-  box-shadow: 0 6px 30px -4px hsla(38, 92%, 50%, 0.7);
+  box-shadow: 0 6px 30px -4px hsla(158, 64%, 52%, 0.7);
   transform: translateY(-1px);
 }
 
 /* Glow effect for accents */
 .glow-primary {
-  box-shadow: 0 0 40px -10px hsl(38, 92%, 50%);
+  box-shadow: 0 0 40px -10px hsl(158, 64%, 52%);
 }
 
 /* Animated gradient background */
 .gradient-bg {
-  background: 
-    radial-gradient(ellipse 80% 50% at 50% -20%, hsla(38, 92%, 50%, 0.15), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 60%, hsla(222, 47%, 20%, 0.5), transparent);
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsla(158, 64%, 52%, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 60%, hsla(200, 25%, 20%, 0.5), transparent);
 }
 
 /* Monospace accent for numbers */

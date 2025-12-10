@@ -1,0 +1,82 @@
+{
+  "dashboard": {
+    "title": "Bot Engine - Trade Execution",
+    "uid": "bot-engine-trades",
+    "tags": ["bot", "trading", "production"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Trade Execution Latency",
+        "type": "timeseries",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "avg_over_time({service=\"bot\", component=\"trade\"} | json | unwrap duration_ms [5m])",
+            "legendFormat": "Avg Latency (ms)"
+          }
+        ]
+      },
+      {
+        "title": "Trades by Status",
+        "type": "piechart",
+        "gridPos": { "x": 12, "y": 0, "w": 6, "h": 8 },
+        "targets": [
+          {
+            "expr": "count_over_time({service=\"bot\", component=\"trade\"} | json | status=~\"success|failed|rejected\" [1h])",
+            "legendFormat": "{{status}}"
+          }
+        ]
+      },
+      {
+        "title": "Errors by Type",
+        "type": "table",
+        "gridPos": { "x": 18, "y": 0, "w": 6, "h": 8 },
+        "targets": [
+          {
+            "expr": "topk(10, count_over_time({service=\"bot\", level=\"error\"} | json [1h]) by (error_type))"
+          }
+        ]
+      },
+      {
+        "title": "Recent Errors",
+        "type": "logs",
+        "gridPos": { "x": 0, "y": 8, "w": 24, "h": 10 },
+        "targets": [
+          {
+            "expr": "{service=\"bot\", level=~\"error|critical\"}"
+          }
+        ]
+      },
+      {
+        "title": "Trades by Exchange",
+        "type": "bargauge",
+        "gridPos": { "x": 0, "y": 18, "w": 8, "h": 6 },
+        "targets": [
+          {
+            "expr": "count_over_time({service=\"bot\", component=\"trade\"} | json [1h]) by (exchange)"
+          }
+        ]
+      },
+      {
+        "title": "Risk Rejections",
+        "type": "stat",
+        "gridPos": { "x": 8, "y": 18, "w": 4, "h": 6 },
+        "targets": [
+          {
+            "expr": "count_over_time({service=\"bot\", component=\"risk\", level=\"warn\"} [24h])"
+          }
+        ]
+      },
+      {
+        "title": "Active WebSocket Connections",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 18, "w": 4, "h": 6 },
+        "targets": [
+          {
+            "expr": "max_over_time({service=\"bot\", component=\"websocket\"} | json | unwrap active_connections [5m])"
+          }
+        ]
+      }
+    ]
+  }
+}

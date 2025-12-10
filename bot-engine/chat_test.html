@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JadeBot - AI Trading Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 80vh;
+            background: #1e293b;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bot-avatar {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .bot-info h1 {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .bot-info p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 13px;
+        }
+
+        .status-badge {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot {
+            background: #334155;
+            color: #e2e8f0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.bot pre {
+            background: #1e293b;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .message.bot code {
+            background: #1e293b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .message.bot strong {
+            color: #10b981;
+        }
+
+        .message.bot ul, .message.bot ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message.bot li {
+            margin: 4px 0;
+        }
+
+        .message.bot em {
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            background: #334155;
+            padding: 12px 16px;
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-indicator.show {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .chat-input-container {
+            padding: 16px;
+            background: #0f172a;
+            border-top: 1px solid #334155;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: #10b981;
+        }
+
+        .chat-input::placeholder {
+            color: #64748b;
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .send-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .quick-action {
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 20px;
+            padding: 6px 12px;
+            color: #e2e8f0;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-action:hover {
+            background: #10b981;
+            border-color: #10b981;
+        }
+
+        .api-status {
+            padding: 12px 16px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .api-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .api-status .dot.connected { background: #10b981; }
+        .api-status .dot.demo { background: #f59e0b; }
+        .api-status .dot.error { background: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="bot-avatar">🤖</div>
+            <div class="bot-info">
+                <h1>JadeBot</h1>
+                <p>AI Trading Assistant</p>
+            </div>
+            <span class="status-badge" id="statusBadge">Demo Mode</span>
+        </div>
+
+        <div class="api-status" id="apiStatus">
+            <span class="dot demo"></span>
+            <span>Checking API status...</span>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                👋 Hello! I'm <strong>JadeBot</strong>, your AI trading assistant. I can help you with:
+                <ul>
+                    <li>Platform features & subscription tiers</li>
+                    <li>Trading strategies & risk management</li>
+                    <li>Setting up webhooks & API keys</li>
+                    <li>Analyzing your portfolio</li>
+                </ul>
+                How can I help you today?
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    class="chat-input"
+                    id="chatInput"
+                    placeholder="Ask me anything about trading..."
+                    autocomplete="off"
+                >
+                <button class="send-button" id="sendButton">Send</button>
+            </div>
+            <div class="quick-actions">
+                <button class="quick-action" data-message="How do I set up a webhook?">Webhooks</button>
+                <button class="quick-action" data-message="How do I create a strategy?">Strategies</button>
+                <button class="quick-action" data-message="What are the subscription tiers?">Pricing</button>
+                <button class="quick-action" data-message="How do I set up API keys?">API Keys</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const apiStatus = document.getElementById('apiStatus');
+        const statusBadge = document.getElementById('statusBadge');
+
+        let isLoading = false;
+        let useDemo = true;
+
+        // Check API status on load
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/chat/health`);
+                const data = await response.json();
+
+                if (data.anthropic_configured) {
+                    apiStatus.innerHTML = '<span class="dot connected"></span><span>AI Chat Ready (Claude API)</span>';
+                    statusBadge.textContent = 'Live';
+                    statusBadge.style.background = '#10b981';
+                    useDemo = false;
+                } else {
+                    apiStatus.innerHTML = '<span class="dot demo"></span><span>Demo Mode - Set ANTHROPIC_API_KEY for live AI</span>';
+                    statusBadge.textContent = 'Demo';
+                    statusBadge.style.background = '#f59e0b';
+                    useDemo = true;
+                }
+            } catch (e) {
+                apiStatus.innerHTML = '<span class="dot error"></span><span>API Offline - Start the demo server</span>';
+                statusBadge.textContent = 'Offline';
+                statusBadge.style.background = '#ef4444';
+            }
+        }
+
+        function formatMessage(text) {
+            // Convert markdown-like formatting
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/```json\n([\s\S]*?)```/g, '<pre>$1</pre>')
+                .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+                .replace(/`(.*?)`/g, '<code>$1</code>')
+                .replace(/\n- /g, '\n• ')
+                .replace(/\n(\d+)\. /g, '\n$1. ')
+                .replace(/\n/g, '<br>');
+        }
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            messageDiv.innerHTML = isUser ? content : formatMessage(content);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isLoading) return;
+
+            // Add user message
+            addMessage(message, true);
+            chatInput.value = '';
+
+            // Show typing indicator
+            isLoading = true;
+            sendButton.disabled = true;
+            typingIndicator.classList.add('show');
+
+            try {
+                const endpoint = useDemo ? '/chat/demo' : '/chat/';
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                addMessage(data.response);
+            } catch (e) {
+                addMessage('Sorry, I couldn\'t connect to the server. Please make sure the demo server is running on port 8000.');
+            } finally {
+                isLoading = false;
+                sendButton.disabled = false;
+                typingIndicator.classList.remove('show');
+            }
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Quick action buttons
+        document.querySelectorAll('.quick-action').forEach(btn => {
+            btn.addEventListener('click', () => {
+                chatInput.value = btn.dataset.message;
+                sendMessage();
+            });
+        });
+
+        // Check API status on load
+        checkApiStatus();
+    </script>
+</body>
+</html>

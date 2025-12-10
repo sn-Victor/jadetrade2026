@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Hexagon, TrendingUp, TrendingDown, Wallet, 
-  Bot, LogOut, BarChart3, History, Settings 
+import {
+  Gem, TrendingUp, TrendingDown, Wallet,
+  Bot, LogOut, BarChart3, History, Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -100,19 +100,18 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Hexagon className="w-8 h-8 text-primary fill-primary/20" />
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">N</span>
+              <Gem className="w-8 h-8 text-primary fill-primary/20" />
             </div>
-            <span className="font-semibold text-lg">NexTrade</span>
+            <span className="font-semibold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">JadeTrade</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
             <button className="text-sm text-foreground font-medium">Dashboard</button>
-            <button 
+            <button
               onClick={() => navigate('/bots')}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Bot Marketplace
+              Strategy Marketplace
             </button>
             <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Trade History
@@ -192,7 +191,7 @@ const Dashboard = () => {
             className="glass rounded-xl p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <span className="text-muted-foreground text-sm">Active Bots</span>
+              <span className="text-muted-foreground text-sm">Active Strategies</span>
               <Bot className="w-5 h-5 text-primary" />
             </div>
             <p className="text-2xl font-semibold font-mono">{activeBotsCount}</p>
@@ -276,12 +275,12 @@ const Dashboard = () => {
             <div className="text-center py-12 text-muted-foreground">
               <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No open positions yet</p>
-              <p className="text-sm mt-1">Subscribe to a trading bot to start automated trading</p>
-              <Button 
-                onClick={() => navigate('/bots')} 
+              <p className="text-sm mt-1">Subscribe to a trading strategy to start automated trading</p>
+              <Button
+                onClick={() => navigate('/bots')}
                 className="button-gradient mt-4"
               >
-                Browse Trading Bots
+                Browse Trading Strategies
               </Button>
             </div>
           )}
@@ -294,12 +293,12 @@ const Dashboard = () => {
           transition={{ delay: 0.6 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          <button 
+          <button
             onClick={() => navigate('/bots')}
             className="glass rounded-xl p-6 text-left hover:bg-white/10 transition-colors group"
           >
             <Bot className="w-8 h-8 text-primary mb-4" />
-            <h3 className="font-semibold mb-1">Bot Marketplace</h3>
+            <h3 className="font-semibold mb-1">Strategy Marketplace</h3>
             <p className="text-sm text-muted-foreground">
               Browse and subscribe to trading algorithms
             </p>
