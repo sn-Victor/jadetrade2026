@@ -160,12 +160,12 @@ const Exchanges = () => {
 
   const getConnectedKey = (exchangeId: string) => keys.find(k => k.exchange === exchangeId);
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0d1117]">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/50 bg-[#161b22] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
@@ -180,7 +180,7 @@ const Exchanges = () => {
             <button className="px-1 py-3 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent">
               Overview
             </button>
-            <button className="px-1 py-3 text-sm text-foreground font-medium border-b-2 border-primary">
+            <button className="px-1 py-3 text-sm text-foreground font-medium border-b-2 border-cyan-500">
               Exchanges
             </button>
             <button className="px-1 py-3 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent">
@@ -195,7 +195,7 @@ const Exchanges = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative rounded-2xl bg-gradient-to-r from-teal-900/50 to-cyan-900/50 p-8 mb-8 overflow-hidden"
+          className="relative rounded-2xl bg-gradient-to-br from-[#1a2332] via-[#162029] to-[#1a2332] p-8 mb-6 overflow-hidden border border-border/50"
         >
           <div className="relative z-10">
             <h2 className="text-2xl font-bold mb-2">Exchanges</h2>
@@ -204,7 +204,7 @@ const Exchanges = () => {
             </p>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-teal-500 hover:bg-teal-600">
+                <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-medium">
                   <Plus className="w-4 h-4 mr-2" />
                   Connect exchange
                 </Button>
@@ -266,6 +266,29 @@ const Exchanges = () => {
           </div>
         </motion.div>
 
+        {/* Kraken Recommendation Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="rounded-xl bg-[#161b22] border border-border/50 p-6 mb-6 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-[#5741D9] flex items-center justify-center">
+              <span className="text-white font-bold text-xl">K</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Don't have an exchange yet?</h3>
+              <p className="text-sm text-muted-foreground">
+                We recommend our trusted partner Kraken. You can start trading immediately after completing exchange account verification.
+              </p>
+            </div>
+          </div>
+          <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-medium">
+            Create Kraken account
+          </Button>
+        </motion.div>
+
         {/* Connected Exchanges */}
         {keys.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
@@ -308,10 +331,10 @@ const Exchanges = () => {
         {/* Exchange List */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h3 className="text-lg font-semibold mb-4">Top exchanges for your country</h3>
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
+          <div className="bg-[#161b22] rounded-xl border border-border/50 overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-sm text-muted-foreground border-b border-border">
+                <tr className="text-left text-sm text-muted-foreground border-b border-border/50">
                   <th className="px-4 py-3 font-medium">Exchange</th>
                   <th className="px-4 py-3 font-medium">Account types</th>
                   <th className="px-4 py-3 font-medium">Instruments</th>
@@ -323,7 +346,7 @@ const Exchanges = () => {
                 {EXCHANGES.map((exchange) => {
                   const connected = getConnectedKey(exchange.id);
                   return (
-                    <tr key={exchange.id} className="border-b border-border/50 last:border-0 hover:bg-muted/30">
+                    <tr key={exchange.id} className="border-b border-border/30 last:border-0 hover:bg-white/[0.02]">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: exchange.color + '20', color: exchange.color }}>
@@ -334,13 +357,13 @@ const Exchanges = () => {
                       </td>
                       <td className="px-4 py-4 text-sm text-muted-foreground">{exchange.types.join(' | ')}</td>
                       <td className="px-4 py-4 text-sm">
-                        <div className="flex flex-wrap gap-1">
-                          {exchange.instruments.map((inst, i) => (
-                            <span key={i} className={`${inst === 'Signal' ? 'text-yellow-500' : 'text-primary'}`}>
-                              {inst}{i < exchange.instruments.length - 1 ? ' | ' : ''}
-                            </span>
-                          ))}
-                        </div>
+                        <span className="text-cyan-400">SmartTrade</span>
+                        <span className="text-muted-foreground"> | </span>
+                        <span className="text-cyan-400">DCA</span>
+                        <span className="text-muted-foreground"> | </span>
+                        <span className="text-cyan-400">GRID</span>
+                        <span className="text-muted-foreground"> | </span>
+                        <span className="text-yellow-400">Signal</span>
                       </td>
                       <td className="px-4 py-4">
                         {connected ? (
@@ -348,7 +371,7 @@ const Exchanges = () => {
                             <Check className="w-3 h-3 mr-1" /> Connected
                           </Badge>
                         ) : (
-                          <Button size="sm" variant="outline" onClick={() => handleConnect(exchange)}>
+                          <Button size="sm" variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10" onClick={() => handleConnect(exchange)}>
                             <Link2 className="w-3 h-3 mr-1" /> Connect
                           </Button>
                         )}

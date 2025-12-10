@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Gem, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { useNavigate } from "react-router-dom";
@@ -53,10 +53,11 @@ const Navigation = () => {
       <div className="mx-auto h-full px-6">
         <nav className="flex items-center justify-between h-full">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="relative">
-              <Gem className="w-6 h-6 text-primary fill-primary/20" />
-            </div>
-            <span className="font-semibold text-base tracking-tight bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">JadeTrade</span>
+            <img
+              src="/jadetrade-logo.png"
+              alt="JadeTrade"
+              className="h-8 w-auto"
+            />
           </div>
 
           {/* Desktop Navigation */}

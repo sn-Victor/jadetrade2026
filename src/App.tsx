@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Bots from "./pages/Bots";
+import CreateBot from "./pages/CreateBot";
 import Admin from "./pages/Admin";
 import Exchanges from "./pages/Exchanges";
 
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/bots" element={<Bots />} />
+              <Route path="/bots/create" element={<CreateBot />} />
               <Route path="/exchanges" element={<Exchanges />} />
               <Route path="/admin" element={<Admin />} />
             </Routes>
