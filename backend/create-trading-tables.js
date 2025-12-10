@@ -82,11 +82,17 @@ async function createTables() {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           user_id VARCHAR(255) NOT NULL,
           strategy_id UUID,
+          exchange_key_id UUID,
           is_active BOOLEAN DEFAULT true,
           auto_trade BOOLEAN DEFAULT false,
           risk_percent DECIMAL(5,2) DEFAULT 1.00,
           subscribed_at TIMESTAMPTZ DEFAULT NOW()
       )
+    `);
+    // Add exchange_key_id column if it doesn't exist (for existing tables)
+    await pool.query(`
+      ALTER TABLE strategy_subscriptions
+      ADD COLUMN IF NOT EXISTS exchange_key_id UUID
     `);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS tv_signals (

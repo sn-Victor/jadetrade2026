@@ -30,7 +30,8 @@
       "Bash(start \"C:\\Users\\noobnoob\\Documents\\saas-face-lift\\bot-engine\\chat_test.html\")",
       "Bash(start \"C:\\Users\\noobnoob\\Documents\\saas-face-lift\\bot-engine\\ws_test.html\")",
       "Skill(superpowers:brainstorming)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

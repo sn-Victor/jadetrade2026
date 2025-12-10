@@ -194,23 +194,17 @@ class SignalProcessor:
 async def create_mock_dependencies():
     """
     Create mock dependencies for testing.
-    In production, these would be real database/exchange calls.
+    Used when database is not available.
     """
-    from app.exchanges.binance import BinanceAdapter
-
     async def get_user_exchange(user_id: str, strategy_id: str) -> Optional[ExchangeAdapter]:
-        # TODO: Load from database
-        # For testing, return None (no real exchange)
         logger.debug(f"Mock: Getting exchange for user {user_id}")
         return None
 
     async def get_user_risk_settings(user_id: str) -> RiskSettings:
-        # TODO: Load from database
         logger.debug(f"Mock: Getting risk settings for user {user_id}")
         return RiskSettings()
 
     async def get_portfolio_state(user_id: str, exchange: ExchangeAdapter) -> PortfolioState:
-        # TODO: Calculate from exchange + database
         logger.debug(f"Mock: Getting portfolio state for user {user_id}")
         return PortfolioState(
             total_balance_usd=Decimal("10000"),
@@ -224,15 +218,28 @@ async def create_mock_dependencies():
     return get_user_exchange, get_user_risk_settings, get_portfolio_state
 
 
-async def run_worker(redis_url: str = "redis://localhost:6379"):
+async def run_worker(
+    redis_url: str = "redis://localhost:6379",
+    use_real_db: bool = True,
+):
     """
     Run the signal processor worker.
+
+    Args:
+        redis_url: Redis connection URL
+        use_real_db: Whether to use real database dependencies (vs mock)
 
     Usage:
         python -m app.workers.signal_processor
     """
     import redis.asyncio as redis
+    from app.config import settings
 
+    logger.info("Starting signal processor worker...")
+    logger.info(f"Redis URL: {redis_url}")
+    logger.info(f"Use real DB: {use_real_db}")
+
+    # Connect to Redis
     logger.info("Connecting to Redis...")
     redis_client = redis.from_url(redis_url, decode_responses=True)
 
@@ -245,29 +252,70 @@ async def run_worker(redis_url: str = "redis://localhost:6379"):
 
     queue = SignalQueue(redis_client)
 
-    # Get dependencies (mock for now)
-    get_exchange, get_risk, get_portfolio = await create_mock_dependencies()
+    # Get dependencies
+    if use_real_db:
+        from app.core.database import AsyncSessionLocal
+        from app.core.signal_dependencies import create_signal_processor_dependencies
 
-    processor = SignalProcessor(
-        queue=queue,
-        get_user_exchange=get_exchange,
-        get_user_risk_settings=get_risk,
-        get_portfolio_state=get_portfolio,
-    )
+        # Create a persistent session for the worker
+        # Note: In production, you might want to create sessions per-signal
+        async with AsyncSessionLocal() as db:
+            logger.info("Database session created")
+            get_exchange, get_risk, get_portfolio = create_signal_processor_dependencies(db)
 
-    try:
-        await processor.start(num_workers=2)
-        # Keep running until interrupted
-        while True:
-            stats = await queue.get_stats()
-            logger.info(f"Queue stats", extra_data=stats)
-            await asyncio.sleep(30)
-    except KeyboardInterrupt:
-        logger.info("Shutting down...")
-    finally:
-        await processor.stop()
-        await redis_client.close()
+            processor = SignalProcessor(
+                queue=queue,
+                get_user_exchange=get_exchange,
+                get_user_risk_settings=get_risk,
+                get_portfolio_state=get_portfolio,
+            )
+
+            try:
+                await processor.start(num_workers=2)
+                logger.info("Signal processor started with 2 workers")
+
+                # Keep running until interrupted
+                while True:
+                    stats = await queue.get_stats()
+                    logger.info("Queue stats", extra_data=stats)
+                    await asyncio.sleep(30)
+            except KeyboardInterrupt:
+                logger.info("Shutting down...")
+            finally:
+                await processor.stop()
+    else:
+        # Use mock dependencies
+        get_exchange, get_risk, get_portfolio = await create_mock_dependencies()
+
+        processor = SignalProcessor(
+            queue=queue,
+            get_user_exchange=get_exchange,
+            get_user_risk_settings=get_risk,
+            get_portfolio_state=get_portfolio,
+        )
+
+        try:
+            await processor.start(num_workers=2)
+            logger.info("Signal processor started with mock dependencies")
+
+            while True:
+                stats = await queue.get_stats()
+                logger.info("Queue stats", extra_data=stats)
+                await asyncio.sleep(30)
+        except KeyboardInterrupt:
+            logger.info("Shutting down...")
+        finally:
+            await processor.stop()
+
+    await redis_client.close()
+    logger.info("Worker shutdown complete")
 
 
 if __name__ == "__main__":
-    asyncio.run(run_worker())
+    import os
+    from app.config import settings
+
+    redis_url = os.getenv("REDIS_URL", settings.REDIS_URL)
+    use_real_db = os.getenv("USE_MOCK_DB", "false").lower() != "true"
+
+    asyncio.run(run_worker(redis_url=redis_url, use_real_db=use_real_db))

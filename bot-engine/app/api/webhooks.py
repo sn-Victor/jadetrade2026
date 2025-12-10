@@ -8,12 +8,21 @@ from datetime import datetime
 from decimal import Decimal
 from fastapi import APIRouter, HTTPException, Header, Request, Depends
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy.ext.asyncio import AsyncSession
 import hashlib
 import hmac
 import uuid
 
 from app.logging.logger import get_logger, set_log_context, clear_log_context
 from app.core.queue import SignalQueue, QueuedSignal, QueuePriority
+from app.core.database import get_db
+from app.core.strategy_service import (
+    get_strategy_by_id,
+    verify_webhook_secret,
+    get_subscribed_users,
+    record_signal,
+    update_signal_status,
+)
 
 logger = get_logger("webhook")
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -119,6 +128,7 @@ async def webhook_health():
 async def receive_tradingview_signal(
     signal: TradingViewSignal,
     request: Request,
+    db: AsyncSession = Depends(get_db),
     x_signature: Optional[str] = Header(None, alias="X-Signature"),
 ):
     """
@@ -130,9 +140,9 @@ async def receive_tradingview_signal(
 
     Flow:
     1. Validate authentication
-    2. Look up strategy and user
+    2. Look up strategy and subscribed users
     3. Validate signal parameters
-    4. Queue signal for execution
+    4. Queue signal for each subscribed user with auto_trade enabled
     5. Return signal ID for tracking
     """
     signal_id = str(uuid.uuid4())
@@ -154,16 +164,26 @@ async def receive_tradingview_signal(
             }
         )
 
-        # TODO: Look up strategy from database
-        # strategy = await get_strategy(signal.strategy_id)
-        # if not strategy:
-        #     raise HTTPException(status_code=404, detail="Strategy not found")
+        # Look up strategy from database
+        strategy = await get_strategy_by_id(db, signal.strategy_id)
+        if not strategy:
+            logger.warning(
+                "Strategy not found",
+                extra_data={"strategy_id": signal.strategy_id, "client_ip": client_ip}
+            )
+            raise HTTPException(status_code=404, detail="Strategy not found")
 
-        # TODO: Verify webhook secret
-        # For now, we'll accept any signal with a secret that matches pattern
+        if not strategy.is_active:
+            logger.warning(
+                "Strategy is inactive",
+                extra_data={"strategy_id": signal.strategy_id}
+            )
+            raise HTTPException(status_code=400, detail="Strategy is inactive")
+
+        # Verify webhook secret matches strategy's token
         if not signal.secret or len(signal.secret) < 16:
             logger.warning(
-                "Invalid webhook secret",
+                "Invalid webhook secret format",
                 extra_data={"client_ip": client_ip}
             )
             raise HTTPException(
@@ -171,9 +191,52 @@ async def receive_tradingview_signal(
                 detail="Invalid or missing webhook secret"
             )
 
-        # TODO: Get user from strategy
-        # user_id = strategy.user_id
-        # set_log_context(user_id=user_id)
+        secret_valid = await verify_webhook_secret(db, signal.strategy_id, signal.secret)
+        if not secret_valid:
+            logger.warning(
+                "Webhook secret mismatch",
+                extra_data={"strategy_id": signal.strategy_id, "client_ip": client_ip}
+            )
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid webhook secret"
+            )
+
+        # Get all users subscribed to this strategy with auto_trade enabled
+        subscriptions = await get_subscribed_users(db, signal.strategy_id, auto_trade_only=True)
+
+        if not subscriptions:
+            logger.info(
+                "No active auto-trade subscriptions for strategy",
+                extra_data={"strategy_id": signal.strategy_id}
+            )
+            # Still record the signal even if no one is subscribed
+            await record_signal(
+                db=db,
+                strategy_id=signal.strategy_id,
+                user_id=None,
+                signal_type=signal.action,
+                symbol=signal.symbol,
+                exchange=strategy.exchange,
+                price=signal.price,
+                stop_loss=signal.stop_loss,
+                take_profit=signal.take_profit,
+                source="tradingview",
+                raw_payload={
+                    "action": signal.action,
+                    "symbol": signal.symbol,
+                    "price": signal.price,
+                    "stop_loss": signal.stop_loss,
+                    "take_profit": signal.take_profit,
+                    "leverage": signal.leverage,
+                },
+            )
+            return SignalResponse(
+                success=True,
+                signal_id=signal_id,
+                message="Signal received but no auto-trade subscriptions active",
+                queued=False,
+            )
 
         # Validate price data
         entry_price = None
@@ -201,65 +264,95 @@ async def receive_tradingview_signal(
         # Exit signals are higher priority (need to close positions quickly)
         priority = QueuePriority.HIGH if "exit" in signal.action else QueuePriority.NORMAL
 
-        # Build queued signal
-        # TODO: Get user_id from strategy lookup
-        user_id = "demo-user"  # Placeholder until DB integration
-
-        queued_signal = QueuedSignal(
-            signal_id=signal_id,
-            user_id=user_id,
-            strategy_id=signal.strategy_id,
-            symbol=signal.symbol,
-            action=signal.action,
-            price=str(entry_price) if entry_price else None,
-            stop_loss=str(stop_loss) if stop_loss else None,
-            take_profit=str(take_profit) if take_profit else None,
-            leverage=signal.leverage or 1,
-            priority=priority,
-        )
-
-        # Queue signal for processing
+        # Queue signal for each subscribed user
         queue = get_signal_queue()
-        queued = False
+        queued_count = 0
+        skipped_count = 0
 
-        if queue:
-            # Create dedup key to prevent duplicate signals
-            dedup_key = f"{user_id}:{signal.symbol}:{signal.action}"
+        for subscription in subscriptions:
+            user_id = subscription.user_id
+            set_log_context(user_id=user_id)
 
-            queued = await queue.enqueue(
-                queued_signal,
-                dedup_key=dedup_key,
-                dedup_ttl=30,  # 30 second dedup window
+            # Record signal for this user
+            db_signal_id = await record_signal(
+                db=db,
+                strategy_id=signal.strategy_id,
+                user_id=user_id,
+                signal_type=signal.action,
+                symbol=signal.symbol,
+                exchange=strategy.exchange,
+                price=signal.price,
+                stop_loss=signal.stop_loss,
+                take_profit=signal.take_profit,
+                source="tradingview",
+                raw_payload={
+                    "action": signal.action,
+                    "symbol": signal.symbol,
+                    "price": signal.price,
+                    "stop_loss": signal.stop_loss,
+                    "take_profit": signal.take_profit,
+                    "leverage": signal.leverage,
+                },
             )
 
-            if not queued:
-                logger.info(
-                    "Signal deduplicated (duplicate within 30s)",
-                    extra_data={"dedup_key": dedup_key}
+            # Build queued signal for this user
+            user_signal_id = f"{signal_id}-{user_id[:8]}"
+            queued_signal = QueuedSignal(
+                signal_id=user_signal_id,
+                user_id=user_id,
+                strategy_id=signal.strategy_id,
+                symbol=signal.symbol,
+                action=signal.action,
+                price=str(entry_price) if entry_price else None,
+                stop_loss=str(stop_loss) if stop_loss else None,
+                take_profit=str(take_profit) if take_profit else None,
+                leverage=signal.leverage or 1,
+                priority=priority,
+            )
+
+            if queue:
+                # Create dedup key to prevent duplicate signals per user
+                dedup_key = f"{user_id}:{signal.symbol}:{signal.action}"
+
+                queued = await queue.enqueue(
+                    queued_signal,
+                    dedup_key=dedup_key,
+                    dedup_ttl=30,  # 30 second dedup window
                 )
-                return SignalResponse(
-                    success=True,
-                    signal_id=signal_id,
-                    message="Signal deduplicated (duplicate within 30 seconds)",
-                    queued=False,
-                )
-        else:
-            logger.warning("Signal queue not available, signal not queued")
+
+                if queued:
+                    queued_count += 1
+                    await update_signal_status(db, db_signal_id, "queued")
+                    logger.info(
+                        "Signal queued for user",
+                        extra_data={"user_id": user_id, "signal_id": user_signal_id}
+                    )
+                else:
+                    skipped_count += 1
+                    await update_signal_status(db, db_signal_id, "skipped", {"reason": "deduplicated"})
+                    logger.info(
+                        "Signal deduplicated for user",
+                        extra_data={"user_id": user_id, "dedup_key": dedup_key}
+                    )
+            else:
+                logger.warning("Signal queue not available")
 
         logger.info(
-            "Signal queued for processing",
+            "Signal processing complete",
             extra_data={
                 "action": signal.action,
                 "priority": priority,
-                "queued": queued,
+                "total_subscriptions": len(subscriptions),
+                "queued_count": queued_count,
+                "skipped_count": skipped_count,
             }
         )
 
         return SignalResponse(
             success=True,
             signal_id=signal_id,
-            message="Signal received and queued for processing",
-            queued=queued,
+            message=f"Signal queued for {queued_count} users ({skipped_count} deduplicated)",
+            queued=queued_count > 0,
         )
 
     except HTTPException:

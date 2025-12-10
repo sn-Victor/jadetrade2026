@@ -399,5 +399,10 @@ ALTER TABLE strategies ADD COLUMN IF NOT EXISTS risk_level VARCHAR(20) DEFAULT '
 ALTER TABLE strategies ADD COLUMN IF NOT EXISTS timeframe VARCHAR(10) DEFAULT '1h';
 
 -- ============================================
+-- UPDATE strategy_subscriptions TABLE (add exchange key link)
+-- ============================================
+ALTER TABLE strategy_subscriptions ADD COLUMN IF NOT EXISTS exchange_key_id UUID REFERENCES exchange_api_keys(id) ON DELETE SET NULL;
+
+-- ============================================
 -- Done!
 -- ============================================
