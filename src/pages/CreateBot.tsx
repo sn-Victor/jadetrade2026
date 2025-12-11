@@ -112,7 +112,7 @@ const CreateBot = () => {
               </Button>
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-[#21262d] flex items-center justify-center">
-                  <BotIcon className="w-4 h-4 text-cyan-400" />
+                  <BotIcon className="w-4 h-4 text-emerald-400" />
                 </div>
                 <h1 className="text-lg font-semibold">{getBotTitle()}</h1>
               </div>
@@ -141,7 +141,7 @@ const CreateBot = () => {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Main</h2>
-                <button className="text-sm text-cyan-400 hover:text-cyan-300">Video tutorial</button>
+                <button className="text-sm text-emerald-400 hover:text-emerald-300">Video tutorial</button>
               </div>
 
               {/* Alert Type */}
@@ -154,12 +154,12 @@ const CreateBot = () => {
                       onClick={() => setAlertType(type.id as 'custom' | 'tradingview')}
                       className={`p-4 rounded-lg border text-left transition-colors ${
                         alertType === type.id
-                          ? 'border-cyan-500 bg-cyan-500/10'
+                          ? 'border-emerald-500 bg-emerald-500/10'
                           : 'border-border/50 bg-[#21262d] hover:border-border'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <type.icon className={`w-5 h-5 ${alertType === type.id ? 'text-cyan-400' : 'text-muted-foreground'}`} />
+                        <type.icon className={`w-5 h-5 ${alertType === type.id ? 'text-emerald-400' : 'text-muted-foreground'}`} />
                         <div>
                           <div className="font-medium">{type.name}</div>
                           <div className="text-xs text-muted-foreground">{type.description}</div>
@@ -192,7 +192,7 @@ const CreateBot = () => {
                       <AlertCircle className="w-4 h-4 text-yellow-500" />
                       Not connected
                     </span>
-                    <span className="text-cyan-400">+Connect</span>
+                    <span className="text-emerald-400">+Connect</span>
                   </Button>
                 </div>
               </div>
@@ -263,11 +263,11 @@ const CreateBot = () => {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Set signal alerts</h2>
-                <button className="text-sm text-cyan-400 hover:text-cyan-300">Video tutorial</button>
+                <button className="text-sm text-emerald-400 hover:text-emerald-300">Video tutorial</button>
               </div>
 
               <div className="mb-4">
-                <Label className="text-cyan-400 mb-2 block">Webhook URL for TradingView or other sources</Label>
+                <Label className="text-emerald-400 mb-2 block">Webhook URL for TradingView or other sources</Label>
                 <div className="flex gap-2">
                   <div className="flex-1 relative">
                     <Input
@@ -302,11 +302,11 @@ const CreateBot = () => {
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold">Order settings</h2>
-                <button className="text-sm text-cyan-400 hover:text-cyan-300">Video tutorial</button>
+                <button className="text-sm text-emerald-400 hover:text-emerald-300">Video tutorial</button>
               </div>
 
               {/* Entry Orders Toggle */}
-              <div className="flex items-center justify-between py-3 border-l-2 border-cyan-500 pl-4 mb-4">
+              <div className="flex items-center justify-between py-3 border-l-2 border-emerald-500 pl-4 mb-4">
                 <span className="font-medium">Entry orders</span>
                 <Switch
                   checked={entryOrders}
@@ -366,7 +366,7 @@ const CreateBot = () => {
 
                   {/* Webhook Message */}
                   <div>
-                    <Label className="text-cyan-400 mb-2 block">Webhook message for entry order signals</Label>
+                    <Label className="text-emerald-400 mb-2 block">Webhook message for entry order signals</Label>
                     <div className="relative">
                       <pre className="bg-[#21262d] border border-border/50 rounded-lg p-4 text-xs text-muted-foreground overflow-x-auto">
                         {webhookMessage}
@@ -426,11 +426,11 @@ const CreateBot = () => {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Max. total investment</span>
-                  <span className="text-cyan-400">0</span>
+                  <span className="text-emerald-400">0</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Trade start condition:</span>
-                  <span className="text-cyan-400">Custom signal</span>
+                  <span className="text-emerald-400">Custom signal</span>
                 </div>
               </div>
 
@@ -442,7 +442,7 @@ const CreateBot = () => {
               </div>
 
               <Button
-                className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-medium"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-black font-medium"
                 size="lg"
                 onClick={() => navigate('/exchanges')}
               >

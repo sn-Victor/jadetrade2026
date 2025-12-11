@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Link2, Plus, Trash2, Check, X, ExternalLink,
-  RefreshCw, Shield, Zap, AlertCircle
+  Shield, Search, TrendingUp, TrendingDown, MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,58 +22,54 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiClient, ExchangeKey } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
+import { usePriceDisplay } from '@/hooks/usePrices';
+import { useCountry, EXCHANGES_METADATA } from '@/hooks/useCountry';
 
 // Exchange definitions with metadata
 const EXCHANGES = [
-  { 
-    id: 'binance', 
-    name: 'Binance', 
-    logo: '/exchanges/binance.svg',
+  {
+    id: 'binance',
+    name: 'Binance',
     color: '#F0B90B',
     types: ['Spot', 'Futures', 'Margin'],
     instruments: ['SmartTrade', 'DCA', 'GRID', 'Signal'],
     createUrl: 'https://www.binance.com/en/my/settings/api-management'
   },
-  { 
-    id: 'bybit', 
-    name: 'Bybit', 
-    logo: '/exchanges/bybit.svg',
+  {
+    id: 'bybit',
+    name: 'Bybit',
     color: '#F7A600',
     types: ['Spot', 'Futures'],
     instruments: ['SmartTrade', 'DCA', 'GRID', 'Signal'],
     createUrl: 'https://www.bybit.com/app/user/api-management'
   },
-  { 
-    id: 'coinbase', 
-    name: 'Coinbase', 
-    logo: '/exchanges/coinbase.svg',
+  {
+    id: 'coinbase',
+    name: 'Coinbase',
     color: '#0052FF',
     types: ['Spot'],
     instruments: ['SmartTrade', 'DCA', 'Signal'],
     createUrl: 'https://www.coinbase.com/settings/api'
   },
-  { 
-    id: 'kraken', 
-    name: 'Kraken', 
-    logo: '/exchanges/kraken.svg',
+  {
+    id: 'kraken',
+    name: 'Kraken',
     color: '#5741D9',
     types: ['Spot', 'Futures'],
     instruments: ['SmartTrade', 'DCA', 'GRID', 'Signal'],
     createUrl: 'https://pro.kraken.com/app/settings/api'
   },
-  { 
-    id: 'okx', 
-    name: 'OKX', 
-    logo: '/exchanges/okx.svg',
-    color: '#000000',
+  {
+    id: 'okx',
+    name: 'OKX',
+    color: '#121212',
     types: ['Spot', 'Futures'],
     instruments: ['SmartTrade', 'DCA', 'GRID', 'Signal'],
     createUrl: 'https://www.okx.com/account/my-api'
   },
-  { 
-    id: 'kucoin', 
-    name: 'KuCoin', 
-    logo: '/exchanges/kucoin.svg',
+  {
+    id: 'kucoin',
+    name: 'KuCoin',
     color: '#23AF91',
     types: ['Spot'],
     instruments: ['SmartTrade', 'DCA', 'GRID', 'Signal'],
@@ -81,17 +77,40 @@ const EXCHANGES = [
   },
 ];
 
+interface PriceData {
+  id?: string;
+  symbol: string;
+  price: number;
+  change: number;
+}
+
+const PriceChip = ({ symbol, price, change }: PriceData) => (
+  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 flex-shrink-0">
+    <span className="text-xs text-muted-foreground font-medium">{symbol}</span>
+    <span className="text-sm font-mono font-semibold text-foreground">
+      ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </span>
+    <span className={`text-xs font-medium flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+      {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {change >= 0 ? '+' : ''}{change.toFixed(2)}%
+    </span>
+  </div>
+);
+
 const Exchanges = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { priceList, loading: pricesLoading, error: pricesError } = usePriceDisplay();
+  const { country, exchanges: rankedExchanges, loading: countryLoading } = useCountry();
   const [keys, setKeys] = useState<ExchangeKey[]>([]);
   const [loadingKeys, setLoadingKeys] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedExchange, setSelectedExchange] = useState<typeof EXCHANGES[0] | null>(null);
   const [formData, setFormData] = useState({ apiKey: '', apiSecret: '', passphrase: '', label: '' });
   const [submitting, setSubmitting] = useState(false);
-  const [validating, setValidating] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'exchanges' | 'virtual'>('exchanges');
+  const [tokenSearch, setTokenSearch] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -160,238 +179,440 @@ const Exchanges = () => {
 
   const getConnectedKey = (exchangeId: string) => keys.find(k => k.exchange === exchangeId);
 
-  if (loading) return <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">Loading...</div>;
+  // Filter prices based on search
+  const filteredPrices = tokenSearch
+    ? priceList.filter(p => p.symbol.toLowerCase().includes(tokenSearch.toLowerCase()))
+    : priceList;
+
+  // Use ranked exchanges based on country, fallback to default EXCHANGES
+  const displayExchanges = rankedExchanges.length > 0 ? rankedExchanges : EXCHANGES;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0f0d] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#0d1117]">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-[#161b22] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-xl font-semibold">My Portfolio</h1>
+    <div className="min-h-screen bg-[#0a0f0d] relative overflow-hidden">
+      {/* Background gradient effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-600/8 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[80px]" />
+      </div>
+
+      {/* Top Navigation Bar */}
+      <header className="relative z-10 border-b border-white/5 bg-black/20 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="h-16 flex items-center justify-between">
+            {/* Logo & Nav */}
+            <div className="flex items-center gap-8">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+                <img src="/jadetrade-logo.png" alt="JadeTrade" className="h-8 w-auto" />
+              </div>
+
+              <nav className="flex items-center gap-1">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                >
+                  Dashboard
+                </button>
+                <button
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-emerald-400 bg-emerald-500/10 transition-colors"
+                >
+                  Exchanges
+                </button>
+                <button
+                  onClick={() => navigate('/bots')}
+                  className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                >
+                  Marketplace
+                </button>
+              </nav>
+            </div>
+
+            {/* Right side */}
+            <div className="flex items-center gap-4">
+              <Button
+                size="sm"
+                className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold px-4"
+                onClick={() => navigate('/bots/create')}
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                New Bot
+              </Button>
+            </div>
           </div>
-        </div>
-        {/* Tabs */}
-        <div className="max-w-7xl mx-auto px-4">
-          <nav className="flex gap-6 -mb-px">
-            <button className="px-1 py-3 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent">
-              Overview
-            </button>
-            <button className="px-1 py-3 text-sm text-foreground font-medium border-b-2 border-cyan-500">
-              Exchanges
-            </button>
-            <button className="px-1 py-3 text-sm text-muted-foreground hover:text-foreground border-b-2 border-transparent">
-              Virtual Portfolio
-            </button>
-          </nav>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Hero Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative rounded-2xl bg-gradient-to-br from-[#1a2332] via-[#162029] to-[#1a2332] p-8 mb-6 overflow-hidden border border-border/50"
-        >
-          <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-2">Exchanges</h2>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              Connect all your exchange accounts, manage your trades, and track their profitability.
-            </p>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-medium">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Connect exchange
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>
-                    {selectedExchange ? `Connect ${selectedExchange.name}` : 'Connect Exchange'}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Enter your API credentials. We only need read and trade permissions - never withdrawal.
-                  </DialogDescription>
-                </DialogHeader>
-                {selectedExchange && (
-                  <div className="space-y-4 py-4">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <span className="font-medium">{selectedExchange.name}</span>
-                      <a href={selectedExchange.createUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary flex items-center gap-1">
-                        Create API Key <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="apiKey">API Key *</Label>
-                      <Input id="apiKey" value={formData.apiKey} onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })} placeholder="Enter your API key" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="apiSecret">API Secret *</Label>
-                      <Input id="apiSecret" type="password" value={formData.apiSecret} onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })} placeholder="Enter your API secret" />
-                    </div>
-                    {['coinbase', 'kucoin'].includes(selectedExchange.id) && (
-                      <div className="space-y-2">
-                        <Label htmlFor="passphrase">Passphrase</Label>
-                        <Input id="passphrase" type="password" value={formData.passphrase} onChange={(e) => setFormData({ ...formData, passphrase: e.target.value })} placeholder="API passphrase (if required)" />
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="label">Label</Label>
-                      <Input id="label" value={formData.label} onChange={(e) => setFormData({ ...formData, label: e.target.value })} placeholder="e.g., Main Trading Account" />
-                    </div>
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
-                      <Shield className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-yellow-500/90">
-                        Your API keys are encrypted with AES-256-GCM and stored securely. Never enable withdrawal permissions.
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSubmit} disabled={submitting}>
-                    {submitting ? 'Connecting...' : 'Connect'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-          <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-20">
-            <Link2 className="w-32 h-32" />
-          </div>
-        </motion.div>
-
-        {/* Kraken Recommendation Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="rounded-xl bg-[#161b22] border border-border/50 p-6 mb-6 flex items-center justify-between"
-        >
+      {/* Price Ticker Bar with Search */}
+      <div className="relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#5741D9] flex items-center justify-center">
-              <span className="text-white font-bold text-xl">K</span>
+            {/* Live indicator */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className={`w-2 h-2 rounded-full ${pricesLoading ? 'bg-yellow-400 animate-pulse' : pricesError ? 'bg-red-400' : 'bg-emerald-400 animate-pulse'}`} />
+              <span className="text-xs text-muted-foreground">
+                {pricesLoading ? 'Loading...' : pricesError ? 'Offline' : 'Live'}
+              </span>
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">Don't have an exchange yet?</h3>
-              <p className="text-sm text-muted-foreground">
-                We recommend our trusted partner Kraken. You can start trading immediately after completing exchange account verification.
-              </p>
+
+            {/* Search input */}
+            <div className="relative flex-shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search token..."
+                value={tokenSearch}
+                onChange={(e) => setTokenSearch(e.target.value)}
+                className="w-40 pl-9 pr-3 py-1.5 text-sm rounded-full bg-white/5 border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+              />
+            </div>
+
+            {/* Price chips */}
+            <div className="flex items-center gap-3 overflow-x-auto price-ticker scrollbar-hide flex-1">
+              {filteredPrices.slice(0, 8).map((p) => (
+                <PriceChip key={p.symbol} symbol={p.symbol} price={p.price} change={p.change} />
+              ))}
             </div>
           </div>
-          <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-medium">
-            Create Kraken account
-          </Button>
+        </div>
+      </div>
+
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        {/* Page Header with Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl font-bold mb-2">My Portfolio</h1>
+          <p className="text-muted-foreground mb-6">
+            Manage your exchange connections and track your portfolio performance.
+          </p>
+
+          {/* Tabs */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === 'overview'
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('exchanges')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === 'exchanges'
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              Exchanges
+            </button>
+            <button
+              onClick={() => setActiveTab('virtual')}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === 'virtual'
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              Virtual Portfolio
+            </button>
+          </div>
         </motion.div>
 
-        {/* Connected Exchanges */}
-        {keys.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
-            <h3 className="text-lg font-semibold mb-4">Connected Exchanges</h3>
-            <div className="grid gap-4">
-              {keys.map((key) => {
-                const exchange = EXCHANGES.find(e => e.id === key.exchange);
-                return (
-                  <div key={key.id} className="flex items-center justify-between p-4 rounded-xl bg-card border border-border">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-lg font-bold" style={{ backgroundColor: exchange?.color + '20', color: exchange?.color }}>
-                        {exchange?.name.charAt(0) || key.exchange.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium">{key.label}</p>
-                        <p className="text-sm text-muted-foreground">{key.apiKeyMasked}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {key.isValid ? (
-                        <Badge variant="outline" className="text-green-500 border-green-500/30">
-                          <Check className="w-3 h-3 mr-1" /> Connected
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-red-500 border-red-500/30">
-                          <X className="w-3 h-3 mr-1" /> Invalid
-                        </Badge>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(key)}>
-                        <Trash2 className="w-4 h-4 text-muted-foreground hover:text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Portfolio Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6">
+                <p className="text-sm text-muted-foreground mb-1">Total Balance</p>
+                <p className="text-2xl font-bold text-emerald-400">$0.00</p>
+                <p className="text-xs text-muted-foreground mt-1">Connect an exchange to see balance</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6">
+                <p className="text-sm text-muted-foreground mb-1">Active Bots</p>
+                <p className="text-2xl font-bold">0</p>
+                <p className="text-xs text-muted-foreground mt-1">No bots running</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-6">
+                <p className="text-sm text-muted-foreground mb-1">Connected Exchanges</p>
+                <p className="text-2xl font-bold">{keys.length}</p>
+                <p className="text-xs text-muted-foreground mt-1">{keys.length === 0 ? 'No exchanges connected' : `${keys.length} exchange(s) connected`}</p>
+              </div>
+            </div>
+
+            {/* Empty state or portfolio chart would go here */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                <Link2 className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Connect your first exchange</h3>
+              <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+                Link your exchange account to see your portfolio balance, track performance, and start automated trading.
+              </p>
+              <Button
+                className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold"
+                onClick={() => setActiveTab('exchanges')}
+              >
+                Go to Exchanges
+              </Button>
             </div>
           </motion.div>
         )}
 
-        {/* Exchange List */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <h3 className="text-lg font-semibold mb-4">Top exchanges for your country</h3>
-          <div className="bg-[#161b22] rounded-xl border border-border/50 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-sm text-muted-foreground border-b border-border/50">
-                  <th className="px-4 py-3 font-medium">Exchange</th>
-                  <th className="px-4 py-3 font-medium">Account types</th>
-                  <th className="px-4 py-3 font-medium">Instruments</th>
-                  <th className="px-4 py-3 font-medium">Connect existing account</th>
-                  <th className="px-4 py-3 font-medium">Create new account</th>
-                </tr>
-              </thead>
-              <tbody>
-                {EXCHANGES.map((exchange) => {
-                  const connected = getConnectedKey(exchange.id);
-                  return (
-                    <tr key={exchange.id} className="border-b border-border/30 last:border-0 hover:bg-white/[0.02]">
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: exchange.color + '20', color: exchange.color }}>
-                            {exchange.name.charAt(0)}
-                          </div>
-                          <span className="font-medium">{exchange.name}</span>
+        {/* Exchanges Tab */}
+        {activeTab === 'exchanges' && (
+          <>
+            {/* Hero Banner */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl bg-gradient-to-br from-emerald-500/10 via-transparent to-transparent border border-emerald-500/20 p-8 mb-6 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[60px] -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10">
+                <h2 className="text-2xl font-bold mb-2">Exchanges</h2>
+                <p className="text-muted-foreground mb-6 max-w-md">
+                  Connect all your exchange accounts, manage your trades, and track their profitability.
+                </p>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Connect exchange
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md bg-[#0a0f0d] border-white/10">
+                    <DialogHeader>
+                      <DialogTitle>
+                        {selectedExchange ? `Connect ${selectedExchange.name}` : 'Connect Exchange'}
+                      </DialogTitle>
+                      <DialogDescription>
+                        Enter your API credentials. We only need read and trade permissions - never withdrawal.
+                      </DialogDescription>
+                    </DialogHeader>
+                    {selectedExchange && (
+                      <div className="space-y-4 py-4">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                          <span className="font-medium">{selectedExchange.name}</span>
+                          <a href={selectedExchange.createUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-400 flex items-center gap-1 hover:underline">
+                            Create API Key <ExternalLink className="w-3 h-3" />
+                          </a>
                         </div>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-muted-foreground">{exchange.types.join(' | ')}</td>
-                      <td className="px-4 py-4 text-sm">
-                        <span className="text-cyan-400">SmartTrade</span>
-                        <span className="text-muted-foreground"> | </span>
-                        <span className="text-cyan-400">DCA</span>
-                        <span className="text-muted-foreground"> | </span>
-                        <span className="text-cyan-400">GRID</span>
-                        <span className="text-muted-foreground"> | </span>
-                        <span className="text-yellow-400">Signal</span>
-                      </td>
-                      <td className="px-4 py-4">
-                        {connected ? (
-                          <Badge variant="outline" className="text-green-500 border-green-500/30">
-                            <Check className="w-3 h-3 mr-1" /> Connected
-                          </Badge>
-                        ) : (
-                          <Button size="sm" variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10" onClick={() => handleConnect(exchange)}>
-                            <Link2 className="w-3 h-3 mr-1" /> Connect
-                          </Button>
+                        <div className="space-y-2">
+                          <Label htmlFor="apiKey">API Key *</Label>
+                          <Input id="apiKey" value={formData.apiKey} onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })} placeholder="Enter your API key" className="bg-white/5 border-white/10" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="apiSecret">API Secret *</Label>
+                          <Input id="apiSecret" type="password" value={formData.apiSecret} onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })} placeholder="Enter your API secret" className="bg-white/5 border-white/10" />
+                        </div>
+                        {['coinbase', 'kucoin'].includes(selectedExchange.id) && (
+                          <div className="space-y-2">
+                            <Label htmlFor="passphrase">Passphrase</Label>
+                            <Input id="passphrase" type="password" value={formData.passphrase} onChange={(e) => setFormData({ ...formData, passphrase: e.target.value })} placeholder="API passphrase (if required)" className="bg-white/5 border-white/10" />
+                          </div>
                         )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <a href={exchange.createUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
-                          + Create
-                        </a>
-                      </td>
+                        <div className="space-y-2">
+                          <Label htmlFor="label">Label</Label>
+                          <Input id="label" value={formData.label} onChange={(e) => setFormData({ ...formData, label: e.target.value })} placeholder="e.g., Main Trading Account" className="bg-white/5 border-white/10" />
+                        </div>
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                          <Shield className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-yellow-500/90">
+                            Your API keys are encrypted with AES-256-GCM and stored securely. Never enable withdrawal permissions.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 hover:bg-white/5">Cancel</Button>
+                      <Button onClick={handleSubmit} disabled={submitting} className="bg-emerald-500 hover:bg-emerald-600 text-black">
+                        {submitting ? 'Connecting...' : 'Connect'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="absolute right-8 top-1/2 -translate-y-1/2 opacity-10">
+                <Link2 className="w-32 h-32 text-emerald-400" />
+              </div>
+            </motion.div>
+
+            {/* Kraken Recommendation Banner */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="rounded-2xl bg-white/[0.02] backdrop-blur-sm border border-white/10 p-6 mb-6 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-[#5741D9] flex items-center justify-center">
+                  <span className="text-white font-bold text-xl">K</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Don't have an exchange yet?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    We recommend our trusted partner Kraken. Start trading immediately after verification.
+                  </p>
+                </div>
+              </div>
+              <Button className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold">
+                Create Kraken account
+              </Button>
+            </motion.div>
+
+            {/* Connected Exchanges */}
+            {keys.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Connected Exchanges</h3>
+                <div className="grid gap-4">
+                  {keys.map((key) => {
+                    const exchange = EXCHANGES.find(e => e.id === key.exchange);
+                    return (
+                      <div key={key.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] backdrop-blur-sm border border-white/10 hover:border-emerald-500/20 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold" style={{ backgroundColor: exchange?.color + '20', color: exchange?.color }}>
+                            {exchange?.name.charAt(0) || key.exchange.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium">{key.label}</p>
+                            <p className="text-sm text-muted-foreground">{key.apiKeyMasked}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {key.isValid ? (
+                            <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                              <Check className="w-3 h-3 mr-1" /> Connected
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-red-400 border-red-500/30 bg-red-500/10">
+                              <X className="w-3 h-3 mr-1" /> Invalid
+                            </Badge>
+                          )}
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(key)} className="hover:bg-red-500/10 hover:text-red-400">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Exchange List */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-lg font-semibold">Top exchanges for</h3>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-sm font-medium text-emerald-400">
+                    {countryLoading ? 'Detecting...' : country?.name || 'Global'}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/[0.02] backdrop-blur-sm">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-sm text-muted-foreground border-b border-white/5">
+                      <th className="px-5 py-4 font-medium">Exchange</th>
+                      <th className="px-5 py-4 font-medium">Account types</th>
+                      <th className="px-5 py-4 font-medium">Instruments</th>
+                      <th className="px-5 py-4 font-medium">Connect existing account</th>
+                      <th className="px-5 py-4 font-medium">Create new account</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
+                  </thead>
+                  <tbody>
+                    {displayExchanges.map((exchange) => {
+                      const connected = getConnectedKey(exchange.id);
+                      return (
+                        <tr key={exchange.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold" style={{ backgroundColor: exchange.color + '20', color: exchange.color }}>
+                                {exchange.name.charAt(0)}
+                              </div>
+                              <span className="font-medium">{exchange.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-sm text-muted-foreground">{exchange.types.join(' | ')}</td>
+                          <td className="px-5 py-4 text-sm">
+                            {exchange.instruments.map((inst, i) => (
+                              <span key={inst}>
+                                <span className={inst === 'Signal' ? 'text-yellow-400' : 'text-emerald-400'}>{inst}</span>
+                                {i < exchange.instruments.length - 1 && <span className="text-muted-foreground"> | </span>}
+                              </span>
+                            ))}
+                          </td>
+                          <td className="px-5 py-4">
+                            {connected ? (
+                              <Badge variant="outline" className="text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                                <Check className="w-3 h-3 mr-1" /> Connected
+                              </Badge>
+                            ) : (
+                              <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50" onClick={() => handleConnect(exchange as any)}>
+                                <Link2 className="w-3 h-3 mr-1" /> Connect
+                              </Button>
+                            )}
+                          </td>
+                          <td className="px-5 py-4">
+                            <a href={exchange.createUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-emerald-400 transition-colors flex items-center gap-1">
+                              + Create
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Virtual Portfolio Tab */}
+        {activeTab === 'virtual' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Virtual Portfolio</h3>
+              <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
+                Practice trading with virtual funds before risking real money. Test your strategies in a risk-free environment.
+              </p>
+              <Button
+                className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold"
+              >
+                Create Virtual Portfolio
+              </Button>
+            </div>
+          </motion.div>
+        )}
       </main>
     </div>
   );
 };
 
 export default Exchanges;
-
