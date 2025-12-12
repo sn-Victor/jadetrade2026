@@ -7,7 +7,7 @@ import uuid
 
 from app.config import settings
 from app.logging.logger import get_logger, set_log_context, clear_log_context
-from app.api import webhooks, trades, positions, chat, websocket
+from app.api import webhooks, trades, positions, chat, websocket, exchanges
 from app.core.database import init_db, close_db
 from app.core.redis import init_redis, close_redis
 
@@ -128,6 +128,7 @@ app.include_router(trades.router, prefix="/api/trades", tags=["trades"])
 app.include_router(positions.router, prefix="/api/positions", tags=["positions"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(websocket.router, prefix="/ws", tags=["websocket"])
+app.include_router(exchanges.router, prefix="/api", tags=["exchanges"])
 
 
 if __name__ == "__main__":
