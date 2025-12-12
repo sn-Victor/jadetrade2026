@@ -12,6 +12,7 @@ import Bots from "./pages/Bots";
 import CreateBot from "./pages/CreateBot";
 import Admin from "./pages/Admin";
 import Exchanges from "./pages/Exchanges";
+import SmartTrade from "./pages/SmartTrade";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/smarttrade" element={<SmartTrade />} />
               <Route path="/bots" element={<Bots />} />
               <Route path="/bots/create" element={<CreateBot />} />
               <Route path="/exchanges" element={<Exchanges />} />

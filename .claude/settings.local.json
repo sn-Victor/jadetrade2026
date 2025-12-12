@@ -32,7 +32,12 @@
       "Skill(superpowers:brainstorming)",
       "Bash(git checkout:*)",
       "Bash(git commit:*)",
-      "Bash(pip show fastapi uvicorn)"
+      "Bash(pip show fastapi uvicorn)",
+      "Bash(start http://localhost:8082)",
+      "mcp__ide__getDiagnostics",
+      "Bash(pip show:*)",
+      "Skill(superpowers:writing-plans)",
+      "Bash(start http://localhost:8083/dashboard)"
     ],
     "deny": [],
     "ask": []

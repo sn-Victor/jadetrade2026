@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Plus, Link2, ChevronDown,
   Bot, LogOut, Grid3X3, Webhook, DollarSign,
   ArrowUpRight, Settings, User, Calendar, Search, RefreshCw,
-  GripVertical, X, Check, SlidersHorizontal
+  GripVertical, X, Check, SlidersHorizontal, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { DashboardNav } from '@/components/DashboardNav';
 import { Button } from '@/components/ui/button';
@@ -114,6 +114,9 @@ const Dashboard = () => {
   const [tokenSearch, setTokenSearch] = useState('');
   const [tickerSettingsOpen, setTickerSettingsOpen] = useState(false);
   const [visibleTickerIds, setVisibleTickerIds] = useState<string[]>([]);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const tickerScrollRef = useRef<HTMLDivElement>(null);
 
   // Initialize ticker preferences when prices load
   useEffect(() => {
@@ -135,6 +138,38 @@ const Dashboard = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Check ticker scroll position
+  const checkTickerScroll = () => {
+    if (tickerScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tickerScrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    checkTickerScroll();
+    const scrollEl = tickerScrollRef.current;
+    if (scrollEl) {
+      scrollEl.addEventListener('scroll', checkTickerScroll);
+      window.addEventListener('resize', checkTickerScroll);
+      return () => {
+        scrollEl.removeEventListener('scroll', checkTickerScroll);
+        window.removeEventListener('resize', checkTickerScroll);
+      };
+    }
+  }, [visibleTickerIds]);
+
+  const scrollTicker = (direction: 'left' | 'right') => {
+    if (tickerScrollRef.current) {
+      const scrollAmount = 200;
+      tickerScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -191,15 +226,17 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0f0d] relative overflow-hidden">
-      {/* Background gradient effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-600/8 rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[80px]" />
-      </div>
+      {/* Left Sidebar Navigation */}
+      <DashboardNav onSignOut={handleSignOut} />
 
-      {/* Top Navigation Bar */}
-      <DashboardNav showUserMenu onSignOut={handleSignOut} />
+      {/* Main Content - offset for sidebar */}
+      <div className="ml-64">
+        {/* Background gradient effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-600/8 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[80px]" />
+        </div>
 
       {/* Price Ticker Bar with Search */}
       <div className="relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
@@ -225,26 +262,50 @@ const Dashboard = () => {
               />
             </div>
 
-            {/* Price chips - draggable */}
-            <Reorder.Group
-              axis="x"
-              values={visibleTickerIds}
-              onReorder={setVisibleTickerIds}
-              className="flex items-center gap-3 overflow-x-auto price-ticker scrollbar-hide flex-1"
+            {/* Scroll left button */}
+            <button
+              onClick={() => scrollTicker('left')}
+              className={`p-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex-shrink-0 ${
+                canScrollLeft ? 'opacity-100' : 'opacity-30 cursor-not-allowed'
+              }`}
+              disabled={!canScrollLeft}
             >
-              {displayedPrices.map((p) => (
-                <Reorder.Item key={p.id} value={p.id}>
-                  <PriceChip
-                    id={p.id}
-                    symbol={p.symbol}
-                    price={p.price}
-                    change={p.change}
-                    draggable={!tokenSearch}
-                    onRemove={!tokenSearch ? () => removeTicker(p.id) : undefined}
-                  />
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Price chips - draggable */}
+            <div ref={tickerScrollRef} className="overflow-x-auto scrollbar-hide flex-1" style={{ scrollbarWidth: 'none' }}>
+              <Reorder.Group
+                axis="x"
+                values={visibleTickerIds}
+                onReorder={setVisibleTickerIds}
+                className="flex items-center gap-3"
+              >
+                {displayedPrices.map((p) => (
+                  <Reorder.Item key={p.id} value={p.id}>
+                    <PriceChip
+                      id={p.id}
+                      symbol={p.symbol}
+                      price={p.price}
+                      change={p.change}
+                      draggable={!tokenSearch}
+                      onRemove={!tokenSearch ? () => removeTicker(p.id) : undefined}
+                    />
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
+            </div>
+
+            {/* Scroll right button */}
+            <button
+              onClick={() => scrollTicker('right')}
+              className={`p-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-all flex-shrink-0 ${
+                canScrollRight ? 'opacity-100' : 'opacity-30 cursor-not-allowed'
+              }`}
+              disabled={!canScrollRight}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
 
             {/* Settings button */}
             <Popover open={tickerSettingsOpen} onOpenChange={setTickerSettingsOpen}>
@@ -473,6 +534,7 @@ const Dashboard = () => {
           </div>
         </motion.div>
       </main>
+      </div>
     </div>
   );
 };

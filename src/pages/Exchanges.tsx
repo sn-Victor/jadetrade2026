@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Link2, Plus, Trash2, Check, X, ExternalLink,
-  Shield, Search, TrendingUp, TrendingDown, MapPin
+  Shield, TrendingUp, MapPin
 } from 'lucide-react';
 import { DashboardNav } from '@/components/DashboardNav';
+import { PriceTicker } from '@/components/PriceTicker';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -23,7 +24,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiClient, ExchangeKey } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { logger } from '@/lib/logger';
-import { usePriceDisplay } from '@/hooks/usePrices';
 import { useCountry, EXCHANGES_METADATA } from '@/hooks/useCountry';
 
 // Exchange definitions with metadata
@@ -78,31 +78,10 @@ const EXCHANGES = [
   },
 ];
 
-interface PriceData {
-  id?: string;
-  symbol: string;
-  price: number;
-  change: number;
-}
-
-const PriceChip = ({ symbol, price, change }: PriceData) => (
-  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 flex-shrink-0">
-    <span className="text-xs text-muted-foreground font-medium">{symbol}</span>
-    <span className="text-sm font-mono font-semibold text-foreground">
-      ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-    </span>
-    <span className={`text-xs font-medium flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-      {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-      {change >= 0 ? '+' : ''}{change.toFixed(2)}%
-    </span>
-  </div>
-);
-
 const Exchanges = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { priceList, loading: pricesLoading, error: pricesError } = usePriceDisplay();
   const { country, exchanges: rankedExchanges, loading: countryLoading } = useCountry();
   const [keys, setKeys] = useState<ExchangeKey[]>([]);
   const [loadingKeys, setLoadingKeys] = useState(true);
@@ -111,7 +90,6 @@ const Exchanges = () => {
   const [formData, setFormData] = useState({ apiKey: '', apiSecret: '', passphrase: '', label: '' });
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'exchanges' | 'virtual'>('exchanges');
-  const [tokenSearch, setTokenSearch] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -180,11 +158,6 @@ const Exchanges = () => {
 
   const getConnectedKey = (exchangeId: string) => keys.find(k => k.exchange === exchangeId);
 
-  // Filter prices based on search
-  const filteredPrices = tokenSearch
-    ? priceList.filter(p => p.symbol.toLowerCase().includes(tokenSearch.toLowerCase()))
-    : priceList;
-
   // Use ranked exchanges based on country, fallback to default EXCHANGES
   const displayExchanges = rankedExchanges.length > 0 ? rankedExchanges : EXCHANGES;
 
@@ -198,49 +171,20 @@ const Exchanges = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0f0d] relative overflow-hidden">
-      {/* Background gradient effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-600/8 rounded-full blur-[100px]" />
-        <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[80px]" />
-      </div>
-
-      {/* Top Navigation Bar */}
+      {/* Left Sidebar Navigation */}
       <DashboardNav />
 
-      {/* Price Ticker Bar with Search */}
-      <div className="relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center gap-4">
-            {/* Live indicator */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className={`w-2 h-2 rounded-full ${pricesLoading ? 'bg-yellow-400 animate-pulse' : pricesError ? 'bg-red-400' : 'bg-emerald-400 animate-pulse'}`} />
-              <span className="text-xs text-muted-foreground">
-                {pricesLoading ? 'Loading...' : pricesError ? 'Offline' : 'Live'}
-              </span>
-            </div>
-
-            {/* Search input */}
-            <div className="relative flex-shrink-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search token..."
-                value={tokenSearch}
-                onChange={(e) => setTokenSearch(e.target.value)}
-                className="w-40 pl-9 pr-3 py-1.5 text-sm rounded-full bg-white/5 border border-white/10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50"
-              />
-            </div>
-
-            {/* Price chips */}
-            <div className="flex items-center gap-3 overflow-x-auto price-ticker scrollbar-hide flex-1">
-              {filteredPrices.slice(0, 8).map((p) => (
-                <PriceChip key={p.symbol} symbol={p.symbol} price={p.price} change={p.change} />
-              ))}
-            </div>
-          </div>
+      {/* Main Content - offset for sidebar */}
+      <div className="ml-64">
+        {/* Background gradient effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-600/8 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-emerald-400/5 rounded-full blur-[80px]" />
         </div>
-      </div>
+
+      {/* Price Ticker Bar with Search */}
+      <PriceTicker />
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Page Header with Tabs */}
@@ -569,6 +513,7 @@ const Exchanges = () => {
           </motion.div>
         )}
       </main>
+      </div>
     </div>
   );
 };
