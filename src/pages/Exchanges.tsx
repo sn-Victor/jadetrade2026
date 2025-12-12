@@ -5,6 +5,7 @@ import {
   ArrowLeft, Link2, Plus, Trash2, Check, X, ExternalLink,
   Shield, Search, TrendingUp, TrendingDown, MapPin
 } from 'lucide-react';
+import { DashboardNav } from '@/components/DashboardNav';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -205,50 +206,7 @@ const Exchanges = () => {
       </div>
 
       {/* Top Navigation Bar */}
-      <header className="relative z-10 border-b border-white/5 bg-black/20 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="h-16 flex items-center justify-between">
-            {/* Logo & Nav */}
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                <img src="/jadetrade-logo.png" alt="JadeTrade" className="h-8 w-auto" />
-              </div>
-
-              <nav className="flex items-center gap-1">
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-                >
-                  Dashboard
-                </button>
-                <button
-                  className="px-4 py-2 text-sm font-medium rounded-lg text-emerald-400 bg-emerald-500/10 transition-colors"
-                >
-                  Exchanges
-                </button>
-                <button
-                  onClick={() => navigate('/bots')}
-                  className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-                >
-                  Marketplace
-                </button>
-              </nav>
-            </div>
-
-            {/* Right side */}
-            <div className="flex items-center gap-4">
-              <Button
-                size="sm"
-                className="bg-emerald-500 hover:bg-emerald-600 text-black font-semibold px-4"
-                onClick={() => navigate('/bots/create')}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                New Bot
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DashboardNav />
 
       {/* Price Ticker Bar with Search */}
       <div className="relative z-10 border-b border-white/5 bg-black/10 backdrop-blur-sm">
