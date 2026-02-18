@@ -5,15 +5,29 @@ node_modules/
 dist/
 build/
 
-# Environment variables
+# Environment variables - NEVER commit secrets
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.env
+!*.env.example
 backend/.env
+backend/env-vars.json
+bot-engine/.env
+!bot-engine/.env.example
 
-# AWS
+# AWS policies and credentials
 .aws/
 *.pem
+*-policy.json
+trust-policy.json
+s3-bucket-policy.json
+
+# API keys and secrets
+**/secrets/
+**/credentials/
+*.key
+*.secret
 
 # IDE
 .idea/
@@ -34,3 +48,16 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.db
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.temp
+nul
+NUL
