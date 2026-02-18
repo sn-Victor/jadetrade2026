@@ -31,3 +31,6 @@ Thumbs.db
 
 # Stripe CLI
 .stripe/
+
+# Claude
+.claude/

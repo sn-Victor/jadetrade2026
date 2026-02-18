@@ -1,69 +1,71 @@
-# Welcome to your Lovable project
+# JadeTrade 2026
 
-## Project info
+A comprehensive trading platform with Signal Bot system, SmartTrade features, multi-exchange support, and TradingView PineScript integration.
 
-**URL**: https://lovable.dev/projects/92dc0c12-c831-4ed8-9ab7-0f875920f45d
+## Features
 
-## How can I edit this code?
+- **Signal Bot System** - Automated trading signals with sub-100ms execution
+- **SmartTrade** - Advanced trading tools and order management
+- **Multi-Exchange Support** - Connect to Binance, Bybit, OKX, Coinbase, and more
+- **TradingView Integration** - PineScript alerts and chart integration
+- **Demo Mode** - Practice trading without real funds
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn-ui
+- **Backend**: Node.js, AWS Lambda
+- **Database**: Supabase (PostgreSQL)
+- **Bot Engine**: Python
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/92dc0c12-c831-4ed8-9ab7-0f875920f45d) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ & npm
+- Python 3.10+ (for bot engine)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+### Installation
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
+cd jadetrade2026
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install frontend dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Backend Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+cd backend
+npm install
+# Configure your .env file with required credentials
+```
 
-**Use GitHub Codespaces**
+### Bot Engine Setup
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+cd bot-engine
+pip install -r requirements.txt
+python run_server.py
+```
 
-## What technologies are used for this project?
+## Project Structure
 
-This project is built with .
+```
+├── src/              # React frontend
+├── backend/          # Node.js backend & Lambda functions
+├── bot-engine/       # Python trading bot engine
+├── infrastructure/   # Terraform & deployment scripts
+├── logging-stack/    # Grafana, Loki, Promtail setup
+├── supabase/         # Database migrations & config
+└── docs/             # Documentation & plans
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Documentation
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/92dc0c12-c831-4ed8-9ab7-0f875920f45d) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+See the `docs/` folder for detailed documentation and implementation plans.
